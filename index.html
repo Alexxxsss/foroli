@@ -160,12 +160,13 @@
         /* Autocomplete List */
         .autocomplete-items {
             position: absolute; border: none; z-index: 99; top: 100%; left: 0; right: 0;
-            background: white; max-height: 200px; overflow-y: auto;
+            background: white; max-height: 250px; overflow-y: auto;
             border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); margin-top: 5px;
         }
-        .autocomplete-items div { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0; font-weight: bold; }
+        .autocomplete-items div { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0; font-weight: bold; display: flex; justify-content: space-between;}
         .autocomplete-items div:hover { background-color: var(--bg-grad-1); color: var(--dark); padding-left: 20px; transition: 0.2s; }
         .autocomplete-items div strong { color: var(--primary); }
+        .autocomplete-school { font-size: 0.85em; color: #7f8c8d; font-weight: bold; }
 
         /* Feedback Animation */
         #feedback {
@@ -235,7 +236,7 @@
         </div>
 
         <div class="input-container">
-            <input type="text" id="guess-input" placeholder="Who is this student?" autocomplete="off" disabled>
+            <input type="text" id="guess-input" placeholder="Type a Student or School..." autocomplete="off" disabled>
             <div id="autocomplete-list" class="autocomplete-items"></div>
         </div>
 
@@ -259,29 +260,33 @@
 <script>
     let uniqueCharacters = [];
 
-    // Fetch the LIVE official database from SchaleDB immediately when the page loads
+    // Fetch the LIVE official database from SchaleDB
     window.onload = async () => {
         const startBtn = document.getElementById('start-btn');
         try {
             const res = await fetch('https://raw.githubusercontent.com/SchaleDB/SchaleDB/main/data/en/students.json');
             const data = await res.json();
             
-            // Map the data and filter out alternate versions (e.g. "Hoshino (Swimsuit)")
-            // This ensures every ID is matched to the perfect Base character Name!
+            // Map the data, filter out alternate versions, and pull the School attribute!
             uniqueCharacters = data
                 .filter(student => !student.Name.includes('(')) 
-                .map(student => ({ name: student.Name, id: student.Id }));
+                .map(student => ({ 
+                    name: student.Name, 
+                    id: student.Id, 
+                    school: student.School || "Unknown" 
+                }));
 
             startBtn.innerText = "▶ Start Game";
             startBtn.disabled = false;
         } catch (error) {
             console.error("Failed to connect to SchaleDB.", error);
-            // Fallback to a guaranteed correct mini-list just in case they have no internet
+            // Fallback list with schools just in case
             uniqueCharacters = [
-                { name: "Aru", id: "10000" }, { name: "Kayoko", id: "10001" }, { name: "Mutsuki", id: "10002" }, 
-                { name: "Ayane", id: "10003" }, { name: "Nonomi", id: "10004" }, { name: "Serika", id: "10005" }, 
-                { name: "Hoshino", id: "10006" }, { name: "Hina", id: "10007" }, { name: "Haruka", id: "10008" }, 
-                { name: "Iori", id: "10009" }, { name: "Shiroko", id: "10012" }, { name: "Yuuka", id: "10015" }
+                { name: "Aru", id: "10000", school: "Gehenna" }, { name: "Kayoko", id: "10001", school: "Gehenna" }, 
+                { name: "Mutsuki", id: "10002", school: "Gehenna" }, { name: "Ayane", id: "10003", school: "Abydos" }, 
+                { name: "Nonomi", id: "10004", school: "Abydos" }, { name: "Serika", id: "10005", school: "Abydos" }, 
+                { name: "Hoshino", id: "10006", school: "Abydos" }, { name: "Hina", id: "10007", school: "Gehenna" }, 
+                { name: "Shiroko", id: "10012", school: "Abydos" }, { name: "Yuuka", id: "10015", school: "Millennium" }
             ];
             startBtn.innerText = "▶ Start Game (Offline Mode)";
             startBtn.disabled = false;
@@ -356,7 +361,6 @@
             else hearts[i].className = "heart lost";
         }
 
-        // Lock inputs while the new question image is loading
         inputField.value = '';
         inputField.disabled = true;
         skipBtn.disabled = true;
@@ -368,23 +372,17 @@
         const imgName = `${currentCharacter.id}.webp`;
         const img = new Image();
         
-        // Hide previous image to prevent seeing it while next one downloads
         charDiv.style.backgroundImage = 'none';
         loadingText.style.display = 'block';
 
         img.onload = () => {
             loadingText.style.display = 'none';
-            
             cropPosX = 30 + (Math.random() * 40); 
             cropPosY = 15 + (Math.random() * 40);
 
-            // Apply filters INSTANTLY before showing the image (prevents peeking flash)
             applyFiltersAndDraw(false, false);
-            
-            // Show the modified image
             charDiv.style.backgroundImage = `url('${img.src}')`;
 
-            // Now that image is ready and blurred, unlock the inputs
             inputField.disabled = false;
             skipBtn.disabled = false;
             inputField.focus();
@@ -466,7 +464,6 @@
             triesLeft--;
             updateUI(); 
 
-            // Put value back and refocus so they don't have to re-click
             inputField.value = '';
             inputField.disabled = false;
             skipBtn.disabled = false;
@@ -509,7 +506,6 @@
         
         triesLeft = 0;
         
-        // Update Hearts visually to 0
         const hearts = document.getElementById('hearts-display').children;
         for(let i=0; i<3; i++) hearts[i].className = "heart lost";
 
@@ -543,21 +539,38 @@
         rankEl.style.color = rankColor;
     }
 
-    // Autocomplete Logic
+    // --- Autocomplete Logic (Updated to support searching by School) ---
     inputField.addEventListener('input', function() {
-        const val = this.value;
+        const val = this.value.trim().toLowerCase();
         closeAutocomplete();
         if (!val) return false;
 
-        const matches = uniqueCharacters.filter(c => c.name.toLowerCase().includes(val.toLowerCase()));
+        // Filter: match if the input is in the character's Name OR School
+        const matches = uniqueCharacters.filter(c => {
+            const matchName = c.name.toLowerCase().includes(val);
+            const matchSchool = c.school.toLowerCase().includes(val);
+            return matchName || matchSchool;
+        });
+
+        // Alphabetize the results for easy reading
+        matches.sort((a, b) => a.name.localeCompare(b.name));
 
         matches.forEach(match => {
             const item = document.createElement("div");
+            
+            // Highlight the matched text in both name and school
             const regex = new RegExp(`(${val})`, "gi");
-            item.innerHTML = match.name.replace(regex, "<strong>$1</strong>");
+            const highlightedName = match.name.replace(regex, "<strong>$1</strong>");
+            const highlightedSchool = match.school.replace(regex, "<strong>$1</strong>");
+
+            // Display "Name (School)" in the dropdown
+            item.innerHTML = `
+                <span>${highlightedName}</span> 
+                <span class="autocomplete-school">(${highlightedSchool})</span>
+            `;
             
             item.addEventListener('click', function() {
-                inputField.value = match.name;
+                inputField.value = match.name; // Keep only the name for submission
                 submitGuess(match.name);
             });
             autocompleteList.appendChild(item);
