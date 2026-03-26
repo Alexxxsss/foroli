@@ -101,18 +101,18 @@
             box-shadow: 0 5px 15px rgba(18, 137, 245, 0.4);
             text-transform: uppercase;
         }
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             transform: translateY(-3px) scale(1.02);
             box-shadow: 0 8px 25px rgba(18, 137, 245, 0.6);
         }
-        .btn:active { transform: translateY(1px); }
+        .btn:active:not(:disabled) { transform: translateY(1px); }
         
         .btn-skip {
             background: linear-gradient(45deg, #ff416c, #ff4b2b);
             box-shadow: 0 5px 15px rgba(255, 65, 108, 0.4);
             margin-top: 15px; font-size: 1rem; padding: 10px;
         }
-        .btn-skip:hover { box-shadow: 0 8px 25px rgba(255, 65, 108, 0.6); }
+        .btn-skip:hover:not(:disabled) { box-shadow: 0 8px 25px rgba(255, 65, 108, 0.6); }
         .btn:disabled { background: #bdc3c7; cursor: not-allowed; transform: none; box-shadow: none; }
 
         /* Game Stats */
@@ -155,6 +155,7 @@
             transition: 0.3s; background: #f9fbfd; font-weight: 700; text-align: center;
         }
         input[type="text"]:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 4px rgba(18, 137, 245, 0.1); }
+        input[type="text"]:disabled { background: #eee; cursor: not-allowed; }
 
         /* Autocomplete List */
         .autocomplete-items {
@@ -193,7 +194,6 @@
 </head>
 <body>
 
-    <!-- Animated background -->
     <div class="bg-shapes">
         <div class="shape" style="width: 150px; height: 150px; top: 10%; left: 10%;"></div>
         <div class="shape" style="width: 200px; height: 200px; top: 60%; left: 80%; animation-delay: -5s;"></div>
@@ -216,7 +216,7 @@
             <input type="range" id="blur-slider" min="0" max="20" value="10" oninput="document.getElementById('blur-val').innerText = this.value + 'px'">
         </div>
 
-        <button class="btn" onclick="startGame()">▶ Start Game</button>
+        <button class="btn" id="start-btn" onclick="startGame()" disabled>Loading Characters...</button>
     </div>
 
     <!-- GAME VIEW -->
@@ -230,18 +230,18 @@
         </div>
 
         <div class="image-viewport">
-            <div id="loading-text">Loading Data...</div>
+            <div id="loading-text">Downloading Image...</div>
             <div id="character-image"></div>
         </div>
 
         <div class="input-container">
-            <input type="text" id="guess-input" placeholder="Who is this student?" autocomplete="off">
+            <input type="text" id="guess-input" placeholder="Who is this student?" autocomplete="off" disabled>
             <div id="autocomplete-list" class="autocomplete-items"></div>
         </div>
 
         <div id="feedback"></div>
 
-        <button class="btn btn-skip" id="skip-btn" onclick="skipOrGiveUp()">Give Up / Skip</button>
+        <button class="btn btn-skip" id="skip-btn" onclick="skipOrGiveUp()" disabled>Give Up / Skip</button>
     </div>
 
     <!-- END VIEW -->
@@ -257,31 +257,36 @@
     </div>
 
 <script>
-    // Character Database
-    const characters = [
-        { name: "Shiroko", id: "10012" }, { name: "Hoshino", id: "10006" }, { name: "Serika", id: "10005" },
-        { name: "Nonomi", id: "10004" }, { name: "Ayane", id: "10003" }, { name: "Aru", id: "10000" },
-        { name: "Mutsuki", id: "10002" }, { name: "Kayoko", id: "10001" }, { name: "Haruka", id: "10008" },
-        { name: "Hina", id: "10007" }, { name: "Iori", id: "10009" }, { name: "Junko", id: "10010" },
-        { name: "Akari", id: "10011" }, { name: "Izumi", id: "10013" }, { name: "Haruna", id: "10014" },
-        { name: "Yuuka", id: "10015" }, { name: "Noa", id: "10059" }, { name: "Aris", id: "10019" },
-        { name: "Midori", id: "10018" }, { name: "Momoi", id: "10017" }, { name: "Yuzu", id: "10020" },
-        { name: "Mika", id: "10058" }, { name: "Nagisa", id: "10064" }, { name: "Seia", id: "10085" },
-        { name: "Koharu", id: "10025" }, { name: "Azusa", id: "10024" }, { name: "Hifumi", id: "10022" },
-        { name: "Hanako", id: "10026" }, { name: "Tsurugi", id: "10027" }, { name: "Hasumi", id: "10028" },
-        { name: "Mashiro", id: "10029" }, { name: "Wakamo", id: "10041" }, { name: "Toki", id: "10065" },
-        { name: "Kanna", id: "10062" }, { name: "Miyako", id: "10046" }, { name: "Saki", id: "10047" },
-        { name: "Miyu", id: "10048" }, { name: "Moe", id: "10049" }, { name: "Ui", id: "10044" },
-        { name: "Hinata", id: "10045" }, { name: "Marina", id: "10034" }, { name: "Cherino", id: "10035" },
-        { name: "Nodoka", id: "10036" }, { name: "Atsuko", id: "10052" }, { name: "Misaki", id: "10053" },
-        { name: "Hiyori", id: "10054" }, { name: "Saori", id: "10055" }, { name: "Shiroko Terror", id: "10098" },
-        { name: "Plana", id: "10086" }, { name: "Arona", id: "10087" }
-    ];
+    let uniqueCharacters = [];
 
-    const uniqueCharacters = characters.reduce((acc, current) => {
-        if (!acc.find(item => item.name === current.name)) return acc.concat([current]);
-        return acc;
-    }, []);
+    // Fetch the LIVE official database from SchaleDB immediately when the page loads
+    window.onload = async () => {
+        const startBtn = document.getElementById('start-btn');
+        try {
+            const res = await fetch('https://raw.githubusercontent.com/SchaleDB/SchaleDB/main/data/en/students.json');
+            const data = await res.json();
+            
+            // Map the data and filter out alternate versions (e.g. "Hoshino (Swimsuit)")
+            // This ensures every ID is matched to the perfect Base character Name!
+            uniqueCharacters = data
+                .filter(student => !student.Name.includes('(')) 
+                .map(student => ({ name: student.Name, id: student.Id }));
+
+            startBtn.innerText = "▶ Start Game";
+            startBtn.disabled = false;
+        } catch (error) {
+            console.error("Failed to connect to SchaleDB.", error);
+            // Fallback to a guaranteed correct mini-list just in case they have no internet
+            uniqueCharacters = [
+                { name: "Aru", id: "10000" }, { name: "Kayoko", id: "10001" }, { name: "Mutsuki", id: "10002" }, 
+                { name: "Ayane", id: "10003" }, { name: "Nonomi", id: "10004" }, { name: "Serika", id: "10005" }, 
+                { name: "Hoshino", id: "10006" }, { name: "Hina", id: "10007" }, { name: "Haruka", id: "10008" }, 
+                { name: "Iori", id: "10009" }, { name: "Shiroko", id: "10012" }, { name: "Yuuka", id: "10015" }
+            ];
+            startBtn.innerText = "▶ Start Game (Offline Mode)";
+            startBtn.disabled = false;
+        }
+    };
 
     const primaryImgUrl = "https://raw.githubusercontent.com/SchaleDB/SchaleDB/main/images/student/portrait/";
     const backupImgUrl = "https://schale.gg/images/student/portrait/";
@@ -335,7 +340,6 @@
         currentCharacter = gamePool[currentQuestionIndex];
         triesLeft = 3;
         isTransitioning = false;
-
         currentSettings = { ...initialSettings };
         
         updateUI();
@@ -352,12 +356,12 @@
             else hearts[i].className = "heart lost";
         }
 
+        // Lock inputs while the new question image is loading
         inputField.value = '';
-        inputField.disabled = false;
-        skipBtn.disabled = false;
+        inputField.disabled = true;
+        skipBtn.disabled = true;
         feedbackText.innerText = '';
         feedbackText.className = '';
-        inputField.focus();
     }
 
     function loadImageAndProcess() {
@@ -379,6 +383,11 @@
             
             // Show the modified image
             charDiv.style.backgroundImage = `url('${img.src}')`;
+
+            // Now that image is ready and blurred, unlock the inputs
+            inputField.disabled = false;
+            skipBtn.disabled = false;
+            inputField.focus();
         };
         
         img.onerror = () => {
@@ -392,15 +401,9 @@
         img.src = `${primaryImgUrl}${imgName}`;
     }
 
-    // New "animate" parameter allows smooth zoom-out reveals, but instant blurring on start!
     function applyFiltersAndDraw(revealFull, animate = false) {
-        
-        // Enable or disable CSS transitions dynamically
-        if (animate) {
-            charDiv.style.transition = 'all 0.5s ease-out';
-        } else {
-            charDiv.style.transition = 'none';
-        }
+        if (animate) charDiv.style.transition = 'all 0.5s ease-out';
+        else charDiv.style.transition = 'none';
 
         if (revealFull) {
             charDiv.style.backgroundSize = 'contain';
@@ -418,8 +421,6 @@
     function makeEasier() {
         currentSettings.crop = Math.max(1, currentSettings.crop - (initialSettings.crop - 1) / 2);
         currentSettings.blur = Math.max(0, currentSettings.blur - (initialSettings.blur) / 2);
-        
-        // Use true to animate the filter/zoom change smoothly
         applyFiltersAndDraw(false, true);
     }
 
@@ -454,7 +455,6 @@
             feedbackText.innerText = `Correct! (+${pointsGained} pts)`;
             feedbackText.className = "correct";
             
-            // Pass true to animate the reveal
             applyFiltersAndDraw(true, true); 
 
             setTimeout(() => {
@@ -466,8 +466,12 @@
             triesLeft--;
             updateUI(); 
 
+            // Put value back and refocus so they don't have to re-click
+            inputField.value = '';
+            inputField.disabled = false;
+            skipBtn.disabled = false;
+
             if (triesLeft > 0) {
-                inputField.value = '';
                 feedbackText.innerText = `Wrong! It's getting clearer...`;
                 feedbackText.className = "warning";
                 
@@ -486,7 +490,6 @@
                 feedbackText.innerText = `Out of tries! It was ${currentCharacter.name}.`;
                 feedbackText.className = "wrong";
                 
-                // Pass true to animate the reveal
                 applyFiltersAndDraw(true, true); 
 
                 setTimeout(() => {
@@ -505,12 +508,14 @@
         skipBtn.disabled = true;
         
         triesLeft = 0;
-        updateUI();
+        
+        // Update Hearts visually to 0
+        const hearts = document.getElementById('hearts-display').children;
+        for(let i=0; i<3; i++) hearts[i].className = "heart lost";
 
         feedbackText.innerText = `Skipped. It was ${currentCharacter.name}.`;
         feedbackText.className = "wrong";
         
-        // Pass true to animate the reveal
         applyFiltersAndDraw(true, true); 
 
         setTimeout(() => {
@@ -538,7 +543,7 @@
         rankEl.style.color = rankColor;
     }
 
-    // Autocomplete Input Logic
+    // Autocomplete Logic
     inputField.addEventListener('input', function() {
         const val = this.value;
         closeAutocomplete();
