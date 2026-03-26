@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blue Archive: Studentdle</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #1289F5;
+            --secondary: #FF6B9E;
+            --dark: #2C3E50;
+            --bg-grad-1: #e0c3fc;
+            --bg-grad-2: #8ec5fc;
+            
+            /* Game Colors */
+            --correct: #2ecc71;
+            --partial: #f1c40f;
+            --wrong: #e74c3c;
+            --gray: #95a5a6;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            margin: 0; padding: 0; min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+            background: linear-gradient(135deg, var(--bg-grad-1) 0%, var(--bg-grad-2) 100%);
+            background-attachment: fixed; color: var(--dark);
+        }
+
+        h1 {
+            color: white; text-align: center; margin-top: 20px;
+            font-size: 2.5rem; text-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            font-weight: 900; -webkit-text-stroke: 1px rgba(255,255,255,0.5);
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+            padding: 20px; border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15), inset 0 0 0 4px rgba(255,255,255,0.5);
+            width: 95%; max-width: 900px; box-sizing: border-box;
+            margin-bottom: 30px; display: flex; flex-direction: column; align-items: center;
+        }
+
+        /* Input Area */
+        .input-container { position: relative; width: 100%; max-width: 400px; margin-bottom: 20px; }
+        input[type="text"] {
+            width: 100%; padding: 15px; font-size: 1.1rem; font-family: 'Nunito', sans-serif;
+            border: 2px solid #ddd; border-radius: 12px; box-sizing: border-box; outline: none;
+            transition: 0.3s; background: #f9fbfd; font-weight: 700; text-align: center;
+        }
+        input[type="text"]:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(18, 137, 245, 0.1); }
+        input[type="text"]:disabled { background: #eee; cursor: not-allowed; }
+
+        /* Autocomplete List */
+        .autocomplete-items {
+            position: absolute; border: none; z-index: 99; top: 100%; left: 0; right: 0;
+            background: white; max-height: 250px; overflow-y: auto;
+            border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); margin-top: 5px; text-align: left;
+        }
+        .autocomplete-items div { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0; font-weight: bold; display: flex; justify-content: space-between;}
+        .autocomplete-items div:hover { background-color: var(--bg-grad-1); color: var(--dark); padding-left: 20px; transition: 0.2s; }
+        .autocomplete-items div strong { color: var(--primary); }
+        .autocomplete-school { font-size: 0.85em; color: #7f8c8d; font-weight: bold; }
+
+        /* Grid Layout */
+        .grid-wrapper {
+            width: 100%; overflow-x: auto; padding-bottom: 10px;
+        }
+        .game-grid {
+            display: flex; flex-direction: column; gap: 10px; min-width: 700px;
+        }
+        .grid-row {
+            display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr 1fr 1fr; gap: 8px;
+        }
+        .grid-header .cell {
+            background: transparent; color: var(--dark); font-weight: 900;
+            border-bottom: 3px solid var(--primary); font-size: 0.9rem;
+            box-shadow: none; padding: 5px; height: auto; text-transform: uppercase;
+        }
+
+        .cell {
+            background: var(--gray); color: white; border-radius: 10px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            height: 80px; font-weight: bold; font-size: 0.95rem; text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 5px;
+            transition: transform 0.6s; transform-style: preserve-3d;
+            position: relative;
+        }
+
+        /* Front and Back for Flip Animation */
+        .cell-inner {
+            width: 100%; height: 100%; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center;
+            backface-visibility: hidden; position: absolute; border-radius: 10px;
+        }
+        .cell-front { background: #ecf0f1; color: transparent; border: 2px solid #bdc3c7; }
+        .cell-back { transform: rotateX(180deg); color: white; padding: 5px; box-sizing: border-box; }
+
+        .cell.flipped { transform: rotateX(180deg); }
+        .cell.flipped .cell-back.correct { background: var(--correct); }
+        .cell.flipped .cell-back.partial { background: var(--partial); color: var(--dark); }
+        .cell.flipped .cell-back.wrong { background: var(--wrong); }
+
+        .char-icon { width: 45px; height: 45px; border-radius: 5px; margin-bottom: 5px; border: 2px solid rgba(255,255,255,0.5); }
+        .small-text { font-size: 0.75rem; opacity: 0.9; margin-top: 2px; }
+        .arrow { font-size: 1.2rem; font-weight: 900; margin-top: 2px;}
+
+        /* Controls */
+        .btn {
+            background: linear-gradient(45deg, var(--primary), #00d4ff);
+            color: white; border: none; padding: 12px 25px;
+            font-size: 1.1rem; font-weight: 900; border-radius: 12px; cursor: pointer;
+            transition: all 0.3s; box-shadow: 0 5px 15px rgba(18, 137, 245, 0.4); margin-top: 15px;
+        }
+        .btn:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 8px 25px rgba(18, 137, 245, 0.6); }
+
+        #win-screen { display: none; text-align: center; margin-top: 20px; animation: popIn 0.5s; }
+        @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+    </style>
+</head>
+<body>
+
+    <div class="bg-shapes">
+        <div class="shape" style="width: 150px; height: 150px; top: 10%; left: 10%;"></div>
+        <div class="shape" style="width: 200px; height: 200px; top: 60%; left: 80%; animation-delay: -5s;"></div>
+    </div>
+
+    <h1>Studentdle</h1>
+
+    <div class="container">
+        <div id="loading-msg" style="font-weight: bold; margin-bottom: 15px; color: var(--primary);">Connecting to SchaleDB...</div>
+
+        <div class="input-container" id="game-input-area" style="display:none;">
+            <input type="text" id="guess-input" placeholder="Guess a student (or school)..." autocomplete="off">
+            <div id="autocomplete-list" class="autocomplete-items"></div>
+        </div>
+
+        <div class="grid-wrapper">
+            <div class="game-grid" id="grid">
+                <!-- Header -->
+                <div class="grid-row grid-header">
+                    <div class="cell">Student</div>
+                    <div class="cell">School</div>
+                    <div class="cell">Role</div>
+                    <div class="cell">Attack</div>
+                    <div class="cell">Armor</div>
+                    <div class="cell">Weapon</div>
+                    <div class="cell">Age</div>
+                </div>
+                <!-- Guesses go here -->
+            </div>
+        </div>
+
+        <div id="win-screen">
+            <h2 style="color: var(--primary); margin: 0 0 10px 0;">Correct!</h2>
+            <p>You found <strong id="winner-name"></strong> in <span id="guess-count">0</span> guesses!</p>
+            <button class="btn" onclick="location.reload()">Play Again</button>
+        </div>
+    </div>
+
+<script>
+    let students = [];
+    let targetStudent = null;
+    let guessCount = 0;
+    let gameOver = false;
+
+    // Image CDN
+    const iconUrl = "https://raw.githubusercontent.com/SchaleDB/SchaleDB/main/images/student/icon/";
+
+    // Mappings for prettier text
+    const attackMap = { "Explosion": "Explosive", "Pierce": "Piercing", "Mystic": "Mystic", "Sonic": "Sonic" };
+    const armorMap = { "LightArmor": "Light", "HeavyArmor": "Heavy", "Unarmed": "Special", "ElasticArmor": "Elastic" };
+    const squadMap = { "Main": "Striker", "Support": "Special" };
+
+    window.onload = async () => {
+        try {
+            const res = await fetch('https://raw.githubusercontent.com/SchaleDB/SchaleDB/main/data/en/students.json');
+            const data = await res.json();
+            
+            // Clean data: No alt versions, format attributes properly
+            students = data
+                .filter(s => !s.Name.includes('(')) 
+                .map(s => {
+                    // Parse age to a number if possible
+                    let parsedAge = parseInt(s.Age);
+                    if (isNaN(parsedAge)) parsedAge = s.Age; // e.g. "Top Secret"
+
+                    return {
+                        id: s.Id,
+                        name: s.Name,
+                        school: s.School || "Unknown",
+                        squad: squadMap[s.SquadType] || s.SquadType,
+                        role: s.TacticRole,
+                        attack: attackMap[s.BulletType] || s.BulletType,
+                        armor: armorMap[s.ArmorType] || s.ArmorType,
+                        weapon: s.WeaponType,
+                        ageRaw: s.Age,
+                        ageNum: parsedAge
+                    };
+                });
+
+            document.getElementById('loading-msg').style.display = 'none';
+            document.getElementById('game-input-area').style.display = 'block';
+            
+            // Pick a random target!
+            targetStudent = students[Math.floor(Math.random() * students.length)];
+            console.log("Shhh... Target is:", targetStudent.name); // Cheat for testing
+
+        } catch (error) {
+            document.getElementById('loading-msg').innerText = "Failed to load database. Please refresh.";
+            console.error(error);
+        }
+    };
+
+    // --- Core Evaluation Logic ---
+    function makeGuess(studentName) {
+        if (gameOver) return;
+        const guess = students.find(s => s.name === studentName);
+        if (!guess) return;
+
+        guessCount++;
+        document.getElementById('guess-input').value = '';
+        closeAutocomplete();
+
+        const isWin = (guess.id === targetStudent.id);
+        createRow(guess, isWin);
+
+        if (isWin) {
+            gameOver = true;
+            document.getElementById('guess-input').disabled = true;
+            setTimeout(() => {
+                document.getElementById('win-screen').style.display = 'block';
+                document.getElementById('winner-name').innerText = targetStudent.name;
+                document.getElementById('guess-count').innerText = guessCount;
+                confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+            }, 2500); // Wait for flips to finish
+        }
+    }
+
+    function createRow(guess, isWin) {
+        const grid = document.getElementById('grid');
+        const row = document.createElement('div');
+        row.className = 'grid-row';
+
+        // 1. Character Name & Icon
+        const charHtml = `
+            <img src="${iconUrl}${guess.id}.webp" class="char-icon" onerror="this.src=''">
+            <span>${guess.name}</span>
+        `;
+        row.appendChild(createCell(charHtml, 'correct')); // Always shows character identity
+
+        // 2. School
+        const schoolMatch = guess.school === targetStudent.school ? 'correct' : 'wrong';
+        row.appendChild(createCell(guess.school, schoolMatch));
+
+        // 3. Role (Squad + Tactic)
+        let roleMatch = 'wrong';
+        if (guess.squad === targetStudent.squad && guess.role === targetStudent.role) roleMatch = 'correct';
+        else if (guess.squad === targetStudent.squad || guess.role === targetStudent.role) roleMatch = 'partial';
+        
+        const roleHtml = `<span>${guess.squad}</span><span class="small-text">${guess.role}</span>`;
+        row.appendChild(createCell(roleHtml, roleMatch));
+
+        // 4. Attack
+        const attackMatch = guess.attack === targetStudent.attack ? 'correct' : 'wrong';
+        row.appendChild(createCell(guess.attack, attackMatch));
+
+        // 5. Armor
+        const armorMatch = guess.armor === targetStudent.armor ? 'correct' : 'wrong';
+        row.appendChild(createCell(guess.armor, armorMatch));
+
+        // 6. Weapon
+        const weaponMatch = guess.weapon === targetStudent.weapon ? 'correct' : 'wrong';
+        row.appendChild(createCell(guess.weapon, weaponMatch));
+
+        // 7. Age (With Math logic)
+        let ageMatch = 'wrong';
+        let ageHtml = `<span>${guess.ageRaw}</span>`;
+        
+        if (guess.ageRaw === targetStudent.ageRaw) {
+            ageMatch = 'correct';
+        } else if (typeof guess.ageNum === 'number' && typeof targetStudent.ageNum === 'number') {
+            const diff = targetStudent.ageNum - guess.ageNum;
+            if (Math.abs(diff) <= 2) ageMatch = 'partial'; // Close by 1-2 years!
+            
+            if (diff > 0) ageHtml += `<div class="arrow">⬆️</div>`; // Target is older
+            else if (diff < 0) ageHtml += `<div class="arrow">⬇️</div>`; // Target is younger
+        }
+
+        row.appendChild(createCell(ageHtml, ageMatch));
+
+        // Insert at the top (under header)
+        grid.insertBefore(row, grid.children[1]);
+
+        // Trigger Flip Animations sequentially
+        const cells = row.querySelectorAll('.cell');
+        cells.forEach((cell, index) => {
+            setTimeout(() => {
+                cell.classList.add('flipped');
+            }, index * 300); // 300ms delay per cell
+        });
+    }
+
+    function createCell(htmlContent, statusClass) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        
+        // Structure required for CSS 3D Flip
+        cell.innerHTML = `
+            <div class="cell-inner cell-front"></div>
+            <div class="cell-inner cell-back ${statusClass}">${htmlContent}</div>
+        `;
+        return cell;
+    }
+
+    // --- Autocomplete UI Logic ---
+    const inputField = document.getElementById('guess-input');
+    const autocompleteList = document.getElementById('autocomplete-list');
+
+    inputField.addEventListener('input', function() {
+        const val = this.value.trim().toLowerCase();
+        closeAutocomplete();
+        if (!val) return false;
+
+        // Search by Name or School
+        const matches = students.filter(s => 
+            s.name.toLowerCase().includes(val) || s.school.toLowerCase().includes(val)
+        );
+
+        matches.sort((a, b) => a.name.localeCompare(b.name));
+
+        matches.forEach(match => {
+            const item = document.createElement("div");
+            const regex = new RegExp(`(${val})`, "gi");
+            const hName = match.name.replace(regex, "<strong>$1</strong>");
+            const hSchool = match.school.replace(regex, "<strong>$1</strong>");
+
+            item.innerHTML = `<span>${hName}</span> <span class="autocomplete-school">(${hSchool})</span>`;
+            
+            item.addEventListener('click', function() {
+                makeGuess(match.name);
+            });
+            autocompleteList.appendChild(item);
+        });
+    });
+
+    inputField.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const firstMatch = autocompleteList.firstChild;
+            if (firstMatch) {
+                firstMatch.click(); 
+            }
+        }
+    });
+
+    function closeAutocomplete() {
+        autocompleteList.innerHTML = '';
+    }
+
+    document.addEventListener('click', function (e) {
+        if (e.target !== inputField) closeAutocomplete();
+    });
+
+</script>
+</body>
+</html>
