@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blue Archive Character Quiz</title>
+    <style>
+        :root {
+            --ba-blue: #1289F5;
+            --ba-light-blue: #E1F0FF;
+            --ba-dark: #2C3E50;
+            --bg-color: #F4F7F9;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--ba-dark);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: var(--ba-blue);
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            box-sizing: border-box;
+            margin-top: 20px;
+        }
+
+        /* Settings View */
+        .setting-group {
+            margin-bottom: 20px;
+        }
+        .setting-group label {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--ba-blue);
+        }
+
+        .btn {
+            background-color: var(--ba-blue);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.2s;
+        }
+        .btn:hover { background-color: #0b69c2; }
+        .btn-skip { background-color: #e74c3c; margin-top: 10px; }
+        .btn-skip:hover { background-color: #c0392b; }
+
+        /* Game View */
+        #game-view { display: none; text-align: center; }
+        
+        .image-viewport {
+            width: 300px;
+            height: 300px;
+            margin: 0 auto 20px auto;
+            border: 4px solid var(--ba-light-blue);
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #e2e8f0;
+            /* Checkerboard pattern for transparent areas */
+            background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), 
+                              linear-gradient(-45deg, #ccc 25%, transparent 25%), 
+                              linear-gradient(45deg, transparent 75%, #ccc 75%), 
+                              linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #loading-text {
+            position: absolute;
+            font-weight: bold;
+            color: var(--ba-dark);
+            background: rgba(255,255,255,0.8);
+            padding: 5px 10px;
+            border-radius: 5px;
+            z-index: 10;
+            display: none;
+        }
+
+        /* Pure CSS Pixelation Wrapper */
+        #pixel-wrapper {
+            transform-origin: top left;
+            width: 300px;
+            height: 300px;
+        }
+
+        #character-image {
+            width: 100%;
+            height: 100%;
+            background-repeat: no-repeat;
+            image-rendering: auto; 
+        }
+
+        .input-container { position: relative; width: 100%; text-align: left; }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        input[type="text"]:focus { border-color: var(--ba-blue); }
+
+        /* Autocomplete List */
+        .autocomplete-items {
+            position: absolute;
+            border: 1px solid #ddd;
+            border-top: none;
+            z-index: 99;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            max-height: 200px;
+            overflow-y: auto;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+        }
+        .autocomplete-items div {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .autocomplete-items div:hover { background-color: var(--ba-light-blue); }
+
+        #feedback { margin-top: 15px; font-weight: bold; font-size: 18px; height: 24px;}
+        .correct { color: #2ecc71; }
+        .wrong { color: #e74c3c; }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Blue Archive Character Quiz</h1>
+
+    <div class="container" id="settings-view">
+        <h2>Game Settings</h2>
+        
+        <div class="setting-group">
+            <label><span>Crop Level (Zoom)</span> <span id="crop-val">7</span></label>
+            <input type="range" id="crop-slider" min="1" max="10" value="7" oninput="document.getElementById('crop-val').innerText = this.value">
+            <small>1 = Full image, 10 = Super small crop</small>
+        </div>
+
+        <div class="setting-group">
+            <label><span>Blur Level</span> <span id="blur-val">0px</span></label>
+            <input type="range" id="blur-slider" min="0" max="20" value="0" oninput="document.getElementById('blur-val').innerText = this.value + 'px'">
+        </div>
+
+        <div class="setting-group">
+            <label><span>Pixelation Level</span> <span id="pixel-val">None</span></label>
+            <input type="range" id="pixel-slider" min="1" max="20" value="1" oninput="document.getElementById('pixel-val').innerText = this.value == 1 ? 'None' : this.value">
+        </div>
+
+        <button class="btn" onclick="startGame()">Start Game</button>
+    </div>
+
+    <div class="container" id="game-view">
+        <div class="stats">
+            <span id="score-display">Score: 0</span>
+            <span id="round-display">Round: 1</span>
+        </div>
+
+        <div class="image-viewport">
+            <div id="loading-text">Loading...</div>
+            <div id="pixel-wrapper">
+                <div id="character-image"></div>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <input type="text" id="guess-input" placeholder="Type character name..." autocomplete="off">
+            <div id="autocomplete-list" class="autocomplete-items"></div>
+        </div>
+
+        <div id="feedback"></div>
+
+        <button class="btn btn-skip" id="skip-btn" onclick="skipCharacter()">Skip / Give Up</button>
+    </div>
+
+<script>
+    // Character Database (Extended list with IDs)
+    const characters = [
+        { name: "Shiroko", id: "10012" }, { name: "Hoshino", id: "10006" }, { name: "Serika", id: "10005" },
+        { name: "Nonomi", id: "10004" }, { name: "Ayane", id: "10003" }, { name: "Aru", id: "10000" },
+        { name: "Mutsuki", id: "10002" }, { name: "Kayoko", id: "10001" }, { name: "Haruka", id: "10008" },
+        { name: "Hina", id: "10007" }, { name: "Iori", id: "10009" }, { name: "Junko", id: "10010" },
+        { name: "Akari", id: "10011" }, { name: "Izumi", id: "10013" }, { name: "Haruna", id: "10014" },
+        { name: "Yuuka", id: "10015" }, { name: "Noa", id: "10059" }, { name: "Aris", id: "10019" },
+        { name: "Midori", id: "10018" }, { name: "Momoi", id: "10017" }, { name: "Yuzu", id: "10020" },
+        { name: "Mika", id: "10058" }, { name: "Nagisa", id: "10064" }, { name: "Seia", id: "10085" },
+        { name: "Koharu", id: "10025" }, { name: "Azusa", id: "10024" }, { name: "Hifumi", id: "10022" },
+        { name: "Hanako", id: "10026" }, { name: "Tsurugi", id: "10027" }, { name: "Hasumi", id: "10028" },
+        { name: "Mashiro", id: "10029" }, { name: "Wakamo", id: "10041" }, { name: "Toki", id: "10065" },
+        { name: "Kanna", id: "10062" }, { name: "Miyako", id: "10046" }, { name: "Saki", id: "10047" },
+        { name: "Miyu", id: "10048" }, { name: "Moe", id: "10049" }, { name: "Ui", id: "10044" },
+        { name: "Hinata", id: "10045" }, { name: "Marina", id: "10034" }, { name: "Cherino", id: "10035" },
+        { name: "Nodoka", id: "10036" }, { name: "Atsuko", id: "10052" }, { name: "Misaki", id: "10053" },
+        { name: "Hiyori", id: "10054" }, { name: "Saori", id: "10055" }, { name: "Shiroko Terror", id: "10098" },
+        { name: "Plana", id: "10086" }, { name: "Arona", id: "10087" }
+    ];
+
+    const uniqueCharacters = characters.reduce((acc, current) => {
+        const x = acc.find(item => item.name === current.name);
+        if (!x) { return acc.concat([current]); } else { return acc; }
+    }, []);
+
+    // Utilizing Github's Raw CDN which prevents standard connection timeouts
+    // Switching to /portrait/ ensures we crop the actual character body, not empty space
+    const primaryImgUrl = "https://raw.githubusercontent.com/SchaleDB/SchaleDB/main/images/student/portrait/";
+    const backupImgUrl = "https://schale.gg/images/student/portrait/";
+
+    // Game Variables
+    let currentSettings = { crop: 1, blur: 0, pixelate: 1 };
+    let score = 0;
+    let round = 1;
+    let currentCharacter = null;
+    let pool = [...uniqueCharacters];
+    let cropPosX = 50;
+    let cropPosY = 50;
+
+    const inputField = document.getElementById('guess-input');
+    const autocompleteList = document.getElementById('autocomplete-list');
+    const feedbackText = document.getElementById('feedback');
+    const pixelWrapper = document.getElementById('pixel-wrapper');
+    const charDiv = document.getElementById('character-image');
+    const loadingText = document.getElementById('loading-text');
+
+    function startGame() {
+        currentSettings.crop = parseInt(document.getElementById('crop-slider').value);
+        currentSettings.blur = parseInt(document.getElementById('blur-slider').value);
+        currentSettings.pixelate = parseInt(document.getElementById('pixel-slider').value);
+
+        document.getElementById('settings-view').style.display = 'none';
+        document.getElementById('game-view').style.display = 'block';
+
+        nextRound();
+    }
+
+    function nextRound() {
+        if (pool.length === 0) {
+            pool = [...uniqueCharacters]; 
+        }
+
+        const randomIndex = Math.floor(Math.random() * pool.length);
+        currentCharacter = pool.splice(randomIndex, 1)[0];
+        
+        document.getElementById('round-display').innerText = `Round: ${round}`;
+        inputField.value = '';
+        inputField.disabled = false;
+        document.getElementById('skip-btn').disabled = false;
+        feedbackText.innerText = '';
+        inputField.focus();
+
+        loadImageAndProcess();
+    }
+
+    function loadImageAndProcess() {
+        const imgName = `${currentCharacter.id}.webp`;
+
+        // Preload image object to catch load errors before updating screen
+        const img = new Image();
+        
+        charDiv.style.backgroundImage = 'none';
+        loadingText.innerText = 'Loading...';
+        loadingText.style.display = 'block';
+
+        img.onload = () => {
+            loadingText.style.display = 'none';
+            charDiv.style.backgroundImage = `url('${img.src}')`;
+            
+            // Randomize position based on center mostly (avoid edge transparent pixels)
+            cropPosX = 30 + (Math.random() * 40); 
+            cropPosY = 20 + (Math.random() * 40);
+
+            applyFiltersAndDraw(false);
+        };
+        
+        img.onerror = () => {
+            // If primary GitHub CDN fails, try the Backup Schale.gg server
+            if(img.src.includes('raw.githubusercontent')) {
+                console.log("Primary image host failed. Trying backup...");
+                img.src = `${backupImgUrl}${imgName}`;
+            } else {
+                console.error("Both primary and backup images failed to load.");
+                loadingText.innerText = 'Image missing! Skipping...';
+                setTimeout(nextRound, 1500); 
+            }
+        };
+
+        // Trigger load
+        img.src = `${primaryImgUrl}${imgName}`;
+    }
+
+    function applyFiltersAndDraw(revealFull) {
+        if (revealFull) {
+            // Remove all modifications to reveal image
+            pixelWrapper.style.width = '300px';
+            pixelWrapper.style.height = '300px';
+            pixelWrapper.style.transform = 'scale(1)';
+            
+            charDiv.style.imageRendering = 'auto';
+            charDiv.style.backgroundSize = 'contain';
+            charDiv.style.backgroundPosition = 'center center';
+            charDiv.style.filter = 'none';
+            return;
+        }
+
+        // 1. Pixelation via CSS math
+        const pScale = currentSettings.pixelate;
+        const size = 300 / pScale;
+        pixelWrapper.style.width = size + 'px';
+        pixelWrapper.style.height = size + 'px';
+        pixelWrapper.style.transform = `scale(${pScale})`;
+        charDiv.style.imageRendering = pScale > 1 ? 'pixelated' : 'auto';
+
+        // 2. Crop / Zoom
+        // crop slider 1 to 10. (100% to 1000% size)
+        const bgSize = currentSettings.crop * 100;
+        charDiv.style.backgroundSize = `${bgSize}%`;
+        charDiv.style.backgroundPosition = `${cropPosX}% ${cropPosY}%`;
+
+        // 3. Blur
+        if (currentSettings.blur > 0) {
+            charDiv.style.filter = `blur(${currentSettings.blur}px)`;
+        } else {
+            charDiv.style.filter = 'none';
+        }
+    }
+
+    function submitGuess(guess) {
+        closeAutocomplete();
+        inputField.disabled = true;
+        document.getElementById('skip-btn').disabled = true;
+
+        if (guess.toLowerCase() === currentCharacter.name.toLowerCase()) {
+            score++;
+            document.getElementById('score-display').innerText = `Score: ${score}`;
+            feedbackText.innerText = `Correct! It's ${currentCharacter.name}!`;
+            feedbackText.className = "correct";
+        } else {
+            feedbackText.innerText = `Wrong! It was ${currentCharacter.name}.`;
+            feedbackText.className = "wrong";
+        }
+
+        applyFiltersAndDraw(true); 
+
+        setTimeout(() => {
+            round++;
+            nextRound();
+        }, 2500);
+    }
+
+    function skipCharacter() {
+        closeAutocomplete();
+        inputField.disabled = true;
+        document.getElementById('skip-btn').disabled = true;
+        feedbackText.innerText = `Skipped. It was ${currentCharacter.name}.`;
+        feedbackText.className = "wrong";
+        
+        applyFiltersAndDraw(true); 
+
+        setTimeout(() => {
+            round++;
+            nextRound();
+        }, 2500);
+    }
+
+    // --- Autocomplete Input Logic ---
+
+    inputField.addEventListener('input', function() {
+        const val = this.value;
+        closeAutocomplete();
+        if (!val) return false;
+
+        const matches = uniqueCharacters.filter(c => c.name.toLowerCase().includes(val.toLowerCase()));
+
+        matches.forEach(match => {
+            const item = document.createElement("div");
+            
+            // Bold the typed part of the name
+            const regex = new RegExp(`(${val})`, "gi");
+            item.innerHTML = match.name.replace(regex, "<strong>$1</strong>");
+            
+            item.addEventListener('click', function() {
+                inputField.value = match.name;
+                submitGuess(match.name);
+            });
+            autocompleteList.appendChild(item);
+        });
+    });
+
+    // Accept Enter key input
+    inputField.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const firstMatch = autocompleteList.firstChild;
+            if (firstMatch) {
+                firstMatch.click(); 
+            } else if (this.value) {
+                submitGuess(this.value); 
+            }
+        }
+    });
+
+    function closeAutocomplete() {
+        autocompleteList.innerHTML = '';
+    }
+
+    // Close autocomplete menu when clicking off the input box
+    document.addEventListener('click', function (e) {
+        if (e.target !== inputField) {
+            closeAutocomplete();
+        }
+    });
+
+</script>
+</body>
+</html>
