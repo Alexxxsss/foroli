@@ -4,222 +4,260 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blue Archive Character Quiz</title>
+    <!-- Import cute Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Confetti Library for Win Effects -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
     <style>
         :root {
-            --ba-blue: #1289F5;
-            --ba-light-blue: #E1F0FF;
-            --ba-dark: #2C3E50;
-            --bg-color: #F4F7F9;
+            --primary: #1289F5;
+            --secondary: #FF6B9E;
+            --accent: #FFD166;
+            --dark: #2C3E50;
+            --bg-grad-1: #e0c3fc;
+            --bg-grad-2: #8ec5fc;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--ba-dark);
+            font-family: 'Nunito', sans-serif;
             margin: 0;
             padding: 0;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh;
+            background: linear-gradient(135deg, var(--bg-grad-1) 0%, var(--bg-grad-2) 100%);
+            background-attachment: fixed;
+            color: var(--dark);
+        }
+
+        /* Animated floating background circles */
+        .bg-shapes {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            overflow: hidden; z-index: -1; pointer-events: none;
+        }
+        .shape {
+            position: absolute; border-radius: 50%; background: rgba(255,255,255,0.2);
+            animation: float 15s infinite ease-in-out;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-30px) scale(1.05); }
         }
 
         h1 {
-            color: var(--ba-blue);
+            color: white;
             text-align: center;
             margin-top: 30px;
+            font-size: 2.5rem;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            font-weight: 900;
+            letter-spacing: 1px;
+            -webkit-text-stroke: 1px rgba(255,255,255,0.5);
         }
 
         .container {
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
             padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            width: 100%;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15), inset 0 0 0 4px rgba(255,255,255,0.5);
+            width: 90%;
             max-width: 500px;
             box-sizing: border-box;
-            margin-top: 20px;
+            margin-top: 10px;
+            margin-bottom: 30px;
+            position: relative;
         }
 
-        /* Settings View */
-        .setting-group {
-            margin-bottom: 20px;
-        }
+        /* Hidden by default */
+        #game-view, #end-view { display: none; text-align: center; }
+
+        /* Sliders */
+        .setting-group { margin-bottom: 25px; }
         .setting-group label {
-            display: flex;
-            justify-content: space-between;
-            font-weight: bold;
-            margin-bottom: 8px;
+            display: flex; justify-content: space-between; font-weight: 700;
+            margin-bottom: 10px; font-size: 1.1rem;
         }
         input[type="range"] {
-            width: 100%;
-            accent-color: var(--ba-blue);
+            width: 100%; height: 8px; border-radius: 4px;
+            background: #ddd; outline: none; -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 20px; height: 20px; border-radius: 50%;
+            background: var(--primary); cursor: pointer;
+            box-shadow: 0 0 10px rgba(18, 137, 245, 0.5);
         }
 
+        /* Anime Buttons */
         .btn {
-            background-color: var(--ba-blue);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 100%;
-            transition: 0.2s;
+            background: linear-gradient(45deg, var(--primary), #00d4ff);
+            color: white; border: none; padding: 14px 20px;
+            font-size: 1.2rem; font-weight: 900;
+            border-radius: 12px; cursor: pointer; width: 100%;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 5px 15px rgba(18, 137, 245, 0.4);
+            text-transform: uppercase;
         }
-        .btn:hover { background-color: #0b69c2; }
-        .btn-skip { background-color: #e74c3c; margin-top: 10px; }
-        .btn-skip:hover { background-color: #c0392b; }
-
-        /* Game View */
-        #game-view { display: none; text-align: center; }
+        .btn:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(18, 137, 245, 0.6);
+        }
+        .btn:active { transform: translateY(1px); }
         
+        .btn-skip {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            box-shadow: 0 5px 15px rgba(255, 65, 108, 0.4);
+            margin-top: 15px; font-size: 1rem; padding: 10px;
+        }
+        .btn-skip:hover { box-shadow: 0 8px 25px rgba(255, 65, 108, 0.6); }
+        .btn:disabled { background: #bdc3c7; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* Game Stats */
+        .stats-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px; font-weight: bold; color: var(--dark);
+            background: var(--bg-grad-1); padding: 10px 15px; border-radius: 10px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .tries-container { font-size: 1.2rem; display: flex; gap: 5px; }
+        .heart { color: var(--secondary); transition: all 0.3s; }
+        .heart.lost { color: #ccc; transform: scale(0.8); }
+
+        /* Image Viewport */
         .image-viewport {
-            width: 300px;
-            height: 300px;
-            margin: 0 auto 20px auto;
-            border: 4px solid var(--ba-light-blue);
-            border-radius: 10px;
-            overflow: hidden;
-            background-color: #e2e8f0;
-            /* Checkerboard pattern for transparent areas */
+            width: 300px; height: 300px; margin: 0 auto 20px auto;
+            border: 6px solid white; border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            overflow: hidden; background-color: #e2e8f0;
             background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), 
                               linear-gradient(-45deg, #ccc 25%, transparent 25%), 
                               linear-gradient(45deg, transparent 75%, #ccc 75%), 
                               linear-gradient(-45deg, transparent 75%, #ccc 75%);
             background-size: 20px 20px;
             background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            position: relative; display: flex; justify-content: center; align-items: center;
         }
-
         #loading-text {
-            position: absolute;
-            font-weight: bold;
-            color: var(--ba-dark);
-            background: rgba(255,255,255,0.8);
-            padding: 5px 10px;
-            border-radius: 5px;
-            z-index: 10;
-            display: none;
+            position: absolute; font-weight: bold; color: var(--dark);
+            background: rgba(255,255,255,0.9); padding: 8px 15px;
+            border-radius: 20px; z-index: 10; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
+        #character-image { width: 100%; height: 100%; background-repeat: no-repeat; }
 
-        /* Pure CSS Pixelation Wrapper */
-        #pixel-wrapper {
-            transform-origin: top left;
-            width: 300px;
-            height: 300px;
-        }
-
-        #character-image {
-            width: 100%;
-            height: 100%;
-            background-repeat: no-repeat;
-            image-rendering: auto; 
-        }
-
+        /* Input Area */
         .input-container { position: relative; width: 100%; text-align: left; }
-        
         input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            box-sizing: border-box;
-            outline: none;
+            width: 100%; padding: 15px; font-size: 1.1rem; font-family: 'Nunito', sans-serif;
+            border: 2px solid #ddd; border-radius: 12px; box-sizing: border-box; outline: none;
+            transition: 0.3s; background: #f9fbfd; font-weight: 700; text-align: center;
         }
-        input[type="text"]:focus { border-color: var(--ba-blue); }
+        input[type="text"]:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 4px rgba(18, 137, 245, 0.1); }
 
         /* Autocomplete List */
         .autocomplete-items {
-            position: absolute;
-            border: 1px solid #ddd;
-            border-top: none;
-            z-index: 99;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            max-height: 200px;
-            overflow-y: auto;
-            border-radius: 0 0 8px 8px;
-            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+            position: absolute; border: none; z-index: 99; top: 100%; left: 0; right: 0;
+            background: white; max-height: 200px; overflow-y: auto;
+            border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); margin-top: 5px;
         }
-        .autocomplete-items div {
-            padding: 10px;
-            cursor: pointer;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .autocomplete-items div:hover { background-color: var(--ba-light-blue); }
+        .autocomplete-items div { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0; font-weight: bold; }
+        .autocomplete-items div:hover { background-color: var(--bg-grad-1); color: var(--dark); padding-left: 20px; transition: 0.2s; }
+        .autocomplete-items div strong { color: var(--primary); }
 
-        #feedback { margin-top: 15px; font-weight: bold; font-size: 18px; height: 24px;}
-        .correct { color: #2ecc71; }
-        .wrong { color: #e74c3c; }
-
-        .stats {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            font-weight: bold;
-            color: #7f8c8d;
+        /* Feedback Animation */
+        #feedback {
+            margin-top: 15px; font-weight: 900; font-size: 1.3rem; height: 30px;
+            display: flex; align-items: center; justify-content: center;
         }
+        .correct { color: #2ecc71; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .wrong { color: #e74c3c; animation: shake 0.4s; }
+        .warning { color: #f39c12; animation: popIn 0.5s; }
+
+        @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+        /* End Screen */
+        .score-circle {
+            width: 150px; height: 150px; border-radius: 50%; background: var(--accent);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            margin: 20px auto; color: white; box-shadow: 0 10px 20px rgba(255, 209, 102, 0.4);
+            border: 5px solid white;
+        }
+        .score-circle span { font-size: 3rem; font-weight: 900; line-height: 1; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+        .score-circle small { font-size: 1.2rem; font-weight: bold; }
+        .rank-text { font-size: 1.5rem; font-weight: 900; color: var(--secondary); margin-bottom: 20px; }
+
     </style>
 </head>
 <body>
 
-    <h1>Blue Archive Character Quiz</h1>
-
-    <div class="container" id="settings-view">
-        <h2>Game Settings</h2>
-        
-        <div class="setting-group">
-            <label><span>Crop Level (Zoom)</span> <span id="crop-val">7</span></label>
-            <input type="range" id="crop-slider" min="1" max="10" value="7" oninput="document.getElementById('crop-val').innerText = this.value">
-            <small>1 = Full image, 10 = Super small crop</small>
-        </div>
-
-        <div class="setting-group">
-            <label><span>Blur Level</span> <span id="blur-val">0px</span></label>
-            <input type="range" id="blur-slider" min="0" max="20" value="0" oninput="document.getElementById('blur-val').innerText = this.value + 'px'">
-        </div>
-
-        <div class="setting-group">
-            <label><span>Pixelation Level</span> <span id="pixel-val">None</span></label>
-            <input type="range" id="pixel-slider" min="1" max="20" value="1" oninput="document.getElementById('pixel-val').innerText = this.value == 1 ? 'None' : this.value">
-        </div>
-
-        <button class="btn" onclick="startGame()">Start Game</button>
+    <!-- Animated background -->
+    <div class="bg-shapes">
+        <div class="shape" style="width: 150px; height: 150px; top: 10%; left: 10%;"></div>
+        <div class="shape" style="width: 200px; height: 200px; top: 60%; left: 80%; animation-delay: -5s;"></div>
+        <div class="shape" style="width: 100px; height: 100px; top: 40%; left: 20%; animation-delay: -10s;"></div>
     </div>
 
-    <div class="container" id="game-view">
-        <div class="stats">
-            <span id="score-display">Score: 0</span>
-            <span id="round-display">Round: 1</span>
+    <h1>Blue Archive Quiz</h1>
+
+    <!-- SETTINGS VIEW -->
+    <div class="container" id="settings-view">
+        <h2 style="text-align: center; color: var(--primary); margin-top:0;">Game Settings</h2>
+        
+        <div class="setting-group">
+            <label><span>Crop Level (Zoom)</span> <span id="crop-val">8</span></label>
+            <input type="range" id="crop-slider" min="1" max="10" value="8" oninput="document.getElementById('crop-val').innerText = this.value">
         </div>
 
-        <div class="image-viewport">
-            <div id="loading-text">Loading...</div>
-            <div id="pixel-wrapper">
-                <div id="character-image"></div>
+        <div class="setting-group">
+            <label><span>Blur Level</span> <span id="blur-val">10px</span></label>
+            <input type="range" id="blur-slider" min="0" max="20" value="10" oninput="document.getElementById('blur-val').innerText = this.value + 'px'">
+        </div>
+
+        <button class="btn" onclick="startGame()">▶ Start Game</button>
+    </div>
+
+    <!-- GAME VIEW -->
+    <div class="container" id="game-view">
+        <div class="stats-bar">
+            <span>Score: <span id="score-display" style="color:var(--primary);">0</span></span>
+            <span>Q: <span id="round-display" style="color:var(--secondary);">1 / 10</span></span>
+            <div class="tries-container" id="hearts-display">
+                <span class="heart">❤</span><span class="heart">❤</span><span class="heart">❤</span>
             </div>
         </div>
 
+        <div class="image-viewport">
+            <div id="loading-text">Loading Data...</div>
+            <div id="character-image"></div>
+        </div>
+
         <div class="input-container">
-            <input type="text" id="guess-input" placeholder="Type character name..." autocomplete="off">
+            <input type="text" id="guess-input" placeholder="Who is this student?" autocomplete="off">
             <div id="autocomplete-list" class="autocomplete-items"></div>
         </div>
 
         <div id="feedback"></div>
 
-        <button class="btn btn-skip" id="skip-btn" onclick="skipCharacter()">Skip / Give Up</button>
+        <button class="btn btn-skip" id="skip-btn" onclick="skipOrGiveUp()">Give Up / Skip</button>
+    </div>
+
+    <!-- END VIEW -->
+    <div class="container" id="end-view">
+        <h2 style="color: var(--primary); font-size: 2rem; margin-top:0;">Quiz Complete!</h2>
+        <div class="score-circle">
+            <span id="final-score">0</span>
+            <small>Points</small>
+        </div>
+        <div class="rank-text" id="rank-text">Sensei Rank: S</div>
+        <p>You guessed <span id="correct-count" style="color:var(--primary); font-weight:bold;">0</span> out of 10 students!</p>
+        <button class="btn" onclick="location.reload()" style="margin-top: 15px;">Play Again ↻</button>
     </div>
 
 <script>
-    // Character Database (Extended list with IDs)
+    // Character Database
     const characters = [
         { name: "Shiroko", id: "10012" }, { name: "Hoshino", id: "10006" }, { name: "Serika", id: "10005" },
         { name: "Nonomi", id: "10004" }, { name: "Ayane", id: "10003" }, { name: "Aru", id: "10000" },
@@ -241,173 +279,266 @@
     ];
 
     const uniqueCharacters = characters.reduce((acc, current) => {
-        const x = acc.find(item => item.name === current.name);
-        if (!x) { return acc.concat([current]); } else { return acc; }
+        if (!acc.find(item => item.name === current.name)) return acc.concat([current]);
+        return acc;
     }, []);
 
-    // Utilizing Github's Raw CDN which prevents standard connection timeouts
-    // Switching to /portrait/ ensures we crop the actual character body, not empty space
     const primaryImgUrl = "https://raw.githubusercontent.com/SchaleDB/SchaleDB/main/images/student/portrait/";
     const backupImgUrl = "https://schale.gg/images/student/portrait/";
 
     // Game Variables
-    let currentSettings = { crop: 1, blur: 0, pixelate: 1 };
-    let score = 0;
-    let round = 1;
+    let initialSettings = { crop: 1, blur: 0 };
+    let currentSettings = { crop: 1, blur: 0 };
+    
+    let totalScore = 0;
+    let questionsCorrect = 0;
+    let currentQuestionIndex = 0;
+    const MAX_QUESTIONS = 10;
+    
+    let triesLeft = 3;
     let currentCharacter = null;
-    let pool = [...uniqueCharacters];
-    let cropPosX = 50;
-    let cropPosY = 50;
+    let gamePool = [];
+    let cropPosX = 50, cropPosY = 50;
+    let isTransitioning = false; 
 
+    // DOM Elements
     const inputField = document.getElementById('guess-input');
     const autocompleteList = document.getElementById('autocomplete-list');
     const feedbackText = document.getElementById('feedback');
-    const pixelWrapper = document.getElementById('pixel-wrapper');
     const charDiv = document.getElementById('character-image');
     const loadingText = document.getElementById('loading-text');
+    const skipBtn = document.getElementById('skip-btn');
 
     function startGame() {
-        currentSettings.crop = parseInt(document.getElementById('crop-slider').value);
-        currentSettings.blur = parseInt(document.getElementById('blur-slider').value);
-        currentSettings.pixelate = parseInt(document.getElementById('pixel-slider').value);
+        initialSettings.crop = parseFloat(document.getElementById('crop-slider').value);
+        initialSettings.blur = parseFloat(document.getElementById('blur-slider').value);
 
         document.getElementById('settings-view').style.display = 'none';
         document.getElementById('game-view').style.display = 'block';
 
-        nextRound();
+        let shuffled = [...uniqueCharacters].sort(() => 0.5 - Math.random());
+        gamePool = shuffled.slice(0, MAX_QUESTIONS);
+
+        currentQuestionIndex = 0;
+        totalScore = 0;
+        questionsCorrect = 0;
+        
+        loadNextQuestion();
     }
 
-    function nextRound() {
-        if (pool.length === 0) {
-            pool = [...uniqueCharacters]; 
+    function loadNextQuestion() {
+        if (currentQuestionIndex >= MAX_QUESTIONS) {
+            endGame();
+            return;
         }
 
-        const randomIndex = Math.floor(Math.random() * pool.length);
-        currentCharacter = pool.splice(randomIndex, 1)[0];
+        currentCharacter = gamePool[currentQuestionIndex];
+        triesLeft = 3;
+        isTransitioning = false;
+
+        currentSettings = { ...initialSettings };
         
-        document.getElementById('round-display').innerText = `Round: ${round}`;
+        updateUI();
+        loadImageAndProcess();
+    }
+
+    function updateUI() {
+        document.getElementById('round-display').innerText = `${currentQuestionIndex + 1} / ${MAX_QUESTIONS}`;
+        document.getElementById('score-display').innerText = totalScore;
+        
+        const hearts = document.getElementById('hearts-display').children;
+        for(let i=0; i<3; i++) {
+            if(i < triesLeft) hearts[i].className = "heart";
+            else hearts[i].className = "heart lost";
+        }
+
         inputField.value = '';
         inputField.disabled = false;
-        document.getElementById('skip-btn').disabled = false;
+        skipBtn.disabled = false;
         feedbackText.innerText = '';
+        feedbackText.className = '';
         inputField.focus();
-
-        loadImageAndProcess();
     }
 
     function loadImageAndProcess() {
         const imgName = `${currentCharacter.id}.webp`;
-
-        // Preload image object to catch load errors before updating screen
         const img = new Image();
         
+        // Hide previous image to prevent seeing it while next one downloads
         charDiv.style.backgroundImage = 'none';
-        loadingText.innerText = 'Loading...';
         loadingText.style.display = 'block';
 
         img.onload = () => {
             loadingText.style.display = 'none';
-            charDiv.style.backgroundImage = `url('${img.src}')`;
             
-            // Randomize position based on center mostly (avoid edge transparent pixels)
             cropPosX = 30 + (Math.random() * 40); 
-            cropPosY = 20 + (Math.random() * 40);
+            cropPosY = 15 + (Math.random() * 40);
 
-            applyFiltersAndDraw(false);
+            // Apply filters INSTANTLY before showing the image (prevents peeking flash)
+            applyFiltersAndDraw(false, false);
+            
+            // Show the modified image
+            charDiv.style.backgroundImage = `url('${img.src}')`;
         };
         
         img.onerror = () => {
-            // If primary GitHub CDN fails, try the Backup Schale.gg server
             if(img.src.includes('raw.githubusercontent')) {
-                console.log("Primary image host failed. Trying backup...");
                 img.src = `${backupImgUrl}${imgName}`;
             } else {
-                console.error("Both primary and backup images failed to load.");
-                loadingText.innerText = 'Image missing! Skipping...';
-                setTimeout(nextRound, 1500); 
+                currentQuestionIndex++;
+                loadNextQuestion(); 
             }
         };
-
-        // Trigger load
         img.src = `${primaryImgUrl}${imgName}`;
     }
 
-    function applyFiltersAndDraw(revealFull) {
+    // New "animate" parameter allows smooth zoom-out reveals, but instant blurring on start!
+    function applyFiltersAndDraw(revealFull, animate = false) {
+        
+        // Enable or disable CSS transitions dynamically
+        if (animate) {
+            charDiv.style.transition = 'all 0.5s ease-out';
+        } else {
+            charDiv.style.transition = 'none';
+        }
+
         if (revealFull) {
-            // Remove all modifications to reveal image
-            pixelWrapper.style.width = '300px';
-            pixelWrapper.style.height = '300px';
-            pixelWrapper.style.transform = 'scale(1)';
-            
-            charDiv.style.imageRendering = 'auto';
             charDiv.style.backgroundSize = 'contain';
             charDiv.style.backgroundPosition = 'center center';
             charDiv.style.filter = 'none';
             return;
         }
 
-        // 1. Pixelation via CSS math
-        const pScale = currentSettings.pixelate;
-        const size = 300 / pScale;
-        pixelWrapper.style.width = size + 'px';
-        pixelWrapper.style.height = size + 'px';
-        pixelWrapper.style.transform = `scale(${pScale})`;
-        charDiv.style.imageRendering = pScale > 1 ? 'pixelated' : 'auto';
-
-        // 2. Crop / Zoom
-        // crop slider 1 to 10. (100% to 1000% size)
         const bgSize = currentSettings.crop * 100;
         charDiv.style.backgroundSize = `${bgSize}%`;
         charDiv.style.backgroundPosition = `${cropPosX}% ${cropPosY}%`;
+        charDiv.style.filter = currentSettings.blur > 0 ? `blur(${currentSettings.blur}px)` : 'none';
+    }
 
-        // 3. Blur
-        if (currentSettings.blur > 0) {
-            charDiv.style.filter = `blur(${currentSettings.blur}px)`;
-        } else {
-            charDiv.style.filter = 'none';
-        }
+    function makeEasier() {
+        currentSettings.crop = Math.max(1, currentSettings.crop - (initialSettings.crop - 1) / 2);
+        currentSettings.blur = Math.max(0, currentSettings.blur - (initialSettings.blur) / 2);
+        
+        // Use true to animate the filter/zoom change smoothly
+        applyFiltersAndDraw(false, true);
+    }
+
+    function triggerWinConfetti() {
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#1289F5', '#FF6B9E', '#FFD166', '#ffffff']
+        });
     }
 
     function submitGuess(guess) {
+        if (isTransitioning) return;
         closeAutocomplete();
-        inputField.disabled = true;
-        document.getElementById('skip-btn').disabled = true;
 
         if (guess.toLowerCase() === currentCharacter.name.toLowerCase()) {
-            score++;
-            document.getElementById('score-display').innerText = `Score: ${score}`;
-            feedbackText.innerText = `Correct! It's ${currentCharacter.name}!`;
+            isTransitioning = true;
+            inputField.disabled = true;
+            skipBtn.disabled = true;
+            questionsCorrect++;
+
+            let pointsGained = 0;
+            if(triesLeft === 3) pointsGained = 100;
+            else if(triesLeft === 2) pointsGained = 60;
+            else if(triesLeft === 1) pointsGained = 30;
+            
+            totalScore += pointsGained;
+            document.getElementById('score-display').innerText = totalScore;
+            
+            triggerWinConfetti();
+            feedbackText.innerText = `Correct! (+${pointsGained} pts)`;
             feedbackText.className = "correct";
+            
+            // Pass true to animate the reveal
+            applyFiltersAndDraw(true, true); 
+
+            setTimeout(() => {
+                currentQuestionIndex++;
+                loadNextQuestion();
+            }, 2500);
+
         } else {
-            feedbackText.innerText = `Wrong! It was ${currentCharacter.name}.`;
-            feedbackText.className = "wrong";
+            triesLeft--;
+            updateUI(); 
+
+            if (triesLeft > 0) {
+                inputField.value = '';
+                feedbackText.innerText = `Wrong! It's getting clearer...`;
+                feedbackText.className = "warning";
+                
+                feedbackText.style.animation = 'none';
+                feedbackText.offsetHeight; 
+                feedbackText.style.animation = null;
+
+                makeEasier();
+                inputField.focus();
+
+            } else {
+                isTransitioning = true;
+                inputField.disabled = true;
+                skipBtn.disabled = true;
+
+                feedbackText.innerText = `Out of tries! It was ${currentCharacter.name}.`;
+                feedbackText.className = "wrong";
+                
+                // Pass true to animate the reveal
+                applyFiltersAndDraw(true, true); 
+
+                setTimeout(() => {
+                    currentQuestionIndex++;
+                    loadNextQuestion();
+                }, 3000);
+            }
         }
-
-        applyFiltersAndDraw(true); 
-
-        setTimeout(() => {
-            round++;
-            nextRound();
-        }, 2500);
     }
 
-    function skipCharacter() {
+    function skipOrGiveUp() {
+        if (isTransitioning) return;
+        isTransitioning = true;
         closeAutocomplete();
         inputField.disabled = true;
-        document.getElementById('skip-btn').disabled = true;
+        skipBtn.disabled = true;
+        
+        triesLeft = 0;
+        updateUI();
+
         feedbackText.innerText = `Skipped. It was ${currentCharacter.name}.`;
         feedbackText.className = "wrong";
         
-        applyFiltersAndDraw(true); 
+        // Pass true to animate the reveal
+        applyFiltersAndDraw(true, true); 
 
         setTimeout(() => {
-            round++;
-            nextRound();
+            currentQuestionIndex++;
+            loadNextQuestion();
         }, 2500);
     }
 
-    // --- Autocomplete Input Logic ---
+    function endGame() {
+        document.getElementById('game-view').style.display = 'none';
+        document.getElementById('end-view').style.display = 'block';
+        
+        document.getElementById('final-score').innerText = totalScore;
+        document.getElementById('correct-count').innerText = questionsCorrect;
 
+        let rank = "C";
+        let rankColor = "#7f8c8d";
+        if (totalScore >= 900) { rank = "S+ (Perfect Sensei!)"; rankColor = "#FFD166"; triggerWinConfetti(); }
+        else if (totalScore >= 700) { rank = "S"; rankColor = "#e67e22"; triggerWinConfetti(); }
+        else if (totalScore >= 500) { rank = "A"; rankColor = "#2ecc71"; }
+        else if (totalScore >= 300) { rank = "B"; rankColor = "#3498db"; }
+
+        const rankEl = document.getElementById('rank-text');
+        rankEl.innerText = `Rank: ${rank}`;
+        rankEl.style.color = rankColor;
+    }
+
+    // Autocomplete Input Logic
     inputField.addEventListener('input', function() {
         const val = this.value;
         closeAutocomplete();
@@ -417,8 +548,6 @@
 
         matches.forEach(match => {
             const item = document.createElement("div");
-            
-            // Bold the typed part of the name
             const regex = new RegExp(`(${val})`, "gi");
             item.innerHTML = match.name.replace(regex, "<strong>$1</strong>");
             
@@ -430,7 +559,6 @@
         });
     });
 
-    // Accept Enter key input
     inputField.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
             const firstMatch = autocompleteList.firstChild;
@@ -446,7 +574,6 @@
         autocompleteList.innerHTML = '';
     }
 
-    // Close autocomplete menu when clicking off the input box
     document.addEventListener('click', function (e) {
         if (e.target !== inputField) {
             closeAutocomplete();
