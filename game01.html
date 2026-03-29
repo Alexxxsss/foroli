@@ -372,7 +372,7 @@
     // Timer Variables
     let questionStartTime = 0;
     let timerInterval = null;
-    const TIME_PENALTY_RATE = 2; // UPDATED: Drops 2 pts per second after 5s
+    const TIME_PENALTY_RATE = 2; // Drops 2 pts per second after 5s
 
     // DOM Elements
     const inputField = document.getElementById('guess-input');
@@ -413,7 +413,7 @@
             let elapsed = (Date.now() - questionStartTime) / 1000;
             timerDisplay.innerText = `⏱ ${elapsed.toFixed(1)}s`;
             
-            // UPDATED: At 5 seconds, activate visual danger state
+            // At 5 seconds, activate visual danger state
             if (elapsed > 5.0 && !timerDisplay.classList.contains('timer-danger')) {
                 timerDisplay.className = 'timer-danger';
             }
@@ -481,15 +481,19 @@
             canvas.height = img.height;
             ctx.drawImage(img, 0, 0);
 
-            const zoomFactor = currentSettings.crop;
-            const cropW = Math.max(1, Math.floor(img.width / zoomFactor));
-            const cropH = Math.max(1, Math.floor(img.height / zoomFactor));
+            let scaleFactor = currentRotation !== 0 ? 1.45 : 1; 
+            let activeZoom = currentSettings.crop / scaleFactor;
+
+            // FIX: Since the display viewport is a square (300x300), the actual crop area on the source image is ALSO a square based on width.
+            const cropW = Math.max(1, Math.floor(img.width / activeZoom));
+            const cropH = cropW;
 
             let bestX = 50, bestY = 50;
             let highestSolidRatio = -1;
             let attempts = 0;
+            const maxAttempts = 80; // Up from 30 to guarantee finding a meaty spot
 
-            while (attempts < 30) {
+            while (attempts < maxAttempts) {
                 attempts++;
                 let testX = Math.random() * 100;
                 let testY = Math.random() * 100;
@@ -510,18 +514,26 @@
                 }
 
                 let solidPixels = 0;
-                for (let i = 3; i < imgData.length; i += 40) {
-                    if (imgData[i] > 20) solidPixels++; 
+                let totalSampled = 0;
+                
+                // Jump 16 indexes at a time to check every 4th pixel (RGBA structure)
+                for (let i = 3; i < imgData.length; i += 16) {
+                    // Only count fully opaque or mostly opaque pixels (ignores blurry translucent edges)
+                    if (imgData[i] > 150) solidPixels++; 
+                    totalSampled++;
                 }
 
-                let ratio = solidPixels / Math.floor(imgData.length / 40);
+                let ratio = solidPixels / totalSampled;
 
+                // Keep track of the absolute thickest/meatiest spot we find
                 if (ratio > highestSolidRatio) {
                     highestSolidRatio = ratio;
                     bestX = testX;
                     bestY = testY;
                 }
-                if (ratio > 0.40) break; 
+                
+                // If it's over 85% solid clothing/hair/face, instantly accept it!
+                if (ratio >= 0.85) break; 
             }
 
             cropPosX = bestX;
@@ -535,7 +547,7 @@
             skipBtn.disabled = false;
             inputField.focus();
             
-            startTimer(); // Start the timer right as the player gets control!
+            startTimer(); 
         };
         
         img.onerror = () => {
@@ -611,7 +623,7 @@
             
             // Calculate Time Penalty
             let elapsedSecs = (Date.now() - questionStartTime) / 1000;
-            // UPDATED: Only punish after 5 full seconds
+            // Only punish after 5 full seconds
             let penaltySeconds = Math.max(0, Math.floor(elapsedSecs) - 5); 
             let timePenalty = penaltySeconds * TIME_PENALTY_RATE;
 
