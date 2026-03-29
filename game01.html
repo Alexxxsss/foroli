@@ -17,6 +17,8 @@
             --dark: #2C3E50;
             --bg-grad-1: #e0c3fc;
             --bg-grad-2: #8ec5fc;
+            --danger: #e74c3c;
+            --warning: #f39c12;
         }
 
         body {
@@ -74,11 +76,11 @@
         /* Hidden by default */
         #game-view, #end-view { display: none; text-align: center; }
 
-        /* Sliders */
+        /* Sliders & Toggles */
         .setting-group { margin-bottom: 25px; }
         .setting-group label {
-            display: flex; justify-content: space-between; font-weight: 700;
-            margin-bottom: 10px; font-size: 1.1rem;
+            display: flex; justify-content: space-between; align-items: center; 
+            font-weight: 700; margin-bottom: 10px; font-size: 1.1rem;
         }
         input[type="range"] {
             width: 100%; height: 8px; border-radius: 4px;
@@ -90,6 +92,24 @@
             background: var(--primary); cursor: pointer;
             box-shadow: 0 0 10px rgba(18, 137, 245, 0.5);
         }
+
+        /* Custom Toggle Switch */
+        .switch {
+            position: relative; display: inline-block; width: 46px; height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e1; transition: .3s; border-radius: 24px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px;
+            left: 3px; bottom: 3px; background-color: white;
+            transition: .3s; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(22px); }
 
         /* Anime Buttons */
         .btn {
@@ -108,11 +128,11 @@
         .btn:active:not(:disabled) { transform: translateY(1px); }
         
         .btn-skip {
-            background: linear-gradient(45deg, #ff416c, #ff4b2b);
-            box-shadow: 0 5px 15px rgba(255, 65, 108, 0.4);
+            background: linear-gradient(45deg, var(--danger), #ff4b2b);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
             margin-top: 15px; font-size: 1rem; padding: 10px;
         }
-        .btn-skip:hover:not(:disabled) { box-shadow: 0 8px 25px rgba(255, 65, 108, 0.6); }
+        .btn-skip:hover:not(:disabled) { box-shadow: 0 8px 25px rgba(231, 76, 60, 0.6); }
         .btn:disabled { background: #bdc3c7; cursor: not-allowed; transform: none; box-shadow: none; }
 
         /* Game Stats */
@@ -121,10 +141,26 @@
             margin-bottom: 15px; font-weight: bold; color: var(--dark);
             background: var(--bg-grad-1); padding: 10px 15px; border-radius: 10px;
             box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+            flex-wrap: wrap; gap: 5px;
         }
         .tries-container { font-size: 1.2rem; display: flex; gap: 5px; }
         .heart { color: var(--secondary); transition: all 0.3s; }
         .heart.lost { color: #ccc; transform: scale(0.8); }
+
+        /* Timer UI */
+        #timer-display {
+            font-family: monospace; font-size: 1.2rem;
+            color: var(--warning); padding: 2px 8px; border-radius: 6px;
+            background: rgba(255,255,255,0.5);
+        }
+        .timer-danger {
+            color: var(--danger) !important;
+            animation: pulseRed 0.8s infinite alternate;
+        }
+        @keyframes pulseRed { 
+            0% { transform: scale(1); box-shadow: 0 0 0 rgba(231,76,60,0); } 
+            100% { transform: scale(1.1); box-shadow: 0 0 10px rgba(231,76,60,0.5); } 
+        }
 
         /* Image Viewport */
         .image-viewport {
@@ -170,12 +206,12 @@
 
         /* Feedback Animation */
         #feedback {
-            margin-top: 15px; font-weight: 900; font-size: 1.3rem; height: 30px;
-            display: flex; align-items: center; justify-content: center;
+            margin-top: 15px; font-weight: 900; font-size: 1.1rem; height: 30px;
+            display: flex; align-items: center; justify-content: center; text-align: center;
         }
         .correct { color: #2ecc71; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .wrong { color: #e74c3c; animation: shake 0.4s; }
-        .warning { color: #f39c12; animation: popIn 0.5s; }
+        .wrong { color: var(--danger); animation: shake 0.4s; }
+        .warning { color: var(--warning); animation: popIn 0.5s; }
 
         @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
@@ -217,6 +253,26 @@
             <input type="range" id="blur-slider" min="0" max="20" value="10" oninput="document.getElementById('blur-val').innerText = this.value + 'px'">
         </div>
 
+        <div class="setting-group">
+            <label>
+                <span>Random Hue Shift</span>
+                <label class="switch">
+                    <input type="checkbox" id="hue-toggle">
+                    <span class="slider"></span>
+                </label>
+            </label>
+        </div>
+
+        <div class="setting-group">
+            <label>
+                <span>Random Rotation</span>
+                <label class="switch">
+                    <input type="checkbox" id="rotation-toggle">
+                    <span class="slider"></span>
+                </label>
+            </label>
+        </div>
+
         <button class="btn" id="start-btn" onclick="startGame()" disabled>Loading Characters...</button>
     </div>
 
@@ -224,6 +280,7 @@
     <div class="container" id="game-view">
         <div class="stats-bar">
             <span>Score: <span id="score-display" style="color:var(--primary);">0</span></span>
+            <span id="timer-display">⏱ 0.0s</span>
             <span>Q: <span id="round-display" style="color:var(--secondary);">1 / 10</span></span>
             <div class="tries-container" id="hearts-display">
                 <span class="heart">❤</span><span class="heart">❤</span><span class="heart">❤</span>
@@ -267,20 +324,18 @@
             const res = await fetch('https://raw.githubusercontent.com/SchaleDB/SchaleDB/main/data/en/students.json');
             const data = await res.json();
             
-            // Map the data, filter out alternate versions, and pull the School attribute!
-            uniqueCharacters = data
-                .filter(student => !student.Name.includes('(')) 
-                .map(student => ({ 
-                    name: student.Name, 
-                    id: student.Id, 
-                    school: student.School || "Unknown" 
-                }));
+            // MAP ALL CHARACTERS
+            uniqueCharacters = data.map(student => ({ 
+                name: student.Name, 
+                id: student.Id, 
+                school: student.School || "Unknown" 
+            }));
 
             startBtn.innerText = "▶ Start Game";
             startBtn.disabled = false;
         } catch (error) {
             console.error("Failed to connect to SchaleDB.", error);
-            // Fallback list with schools just in case
+            // Fallback list
             uniqueCharacters = [
                 { name: "Aru", id: "10000", school: "Gehenna" }, { name: "Kayoko", id: "10001", school: "Gehenna" }, 
                 { name: "Mutsuki", id: "10002", school: "Gehenna" }, { name: "Ayane", id: "10003", school: "Abydos" }, 
@@ -297,9 +352,12 @@
     const backupImgUrl = "https://schale.gg/images/student/portrait/";
 
     // Game Variables
-    let initialSettings = { crop: 1, blur: 0 };
+    let initialSettings = { crop: 1, blur: 0, hueEnabled: false, rotationEnabled: false };
     let currentSettings = { crop: 1, blur: 0 };
     
+    let currentHue = 0;
+    let currentRotation = 0;
+
     let totalScore = 0;
     let questionsCorrect = 0;
     let currentQuestionIndex = 0;
@@ -311,6 +369,11 @@
     let cropPosX = 50, cropPosY = 50;
     let isTransitioning = false; 
 
+    // Timer Variables
+    let questionStartTime = 0;
+    let timerInterval = null;
+    const TIME_PENALTY_RATE = 2; // UPDATED: Drops 2 pts per second after 5s
+
     // DOM Elements
     const inputField = document.getElementById('guess-input');
     const autocompleteList = document.getElementById('autocomplete-list');
@@ -318,10 +381,13 @@
     const charDiv = document.getElementById('character-image');
     const loadingText = document.getElementById('loading-text');
     const skipBtn = document.getElementById('skip-btn');
+    const timerDisplay = document.getElementById('timer-display');
 
     function startGame() {
         initialSettings.crop = parseFloat(document.getElementById('crop-slider').value);
         initialSettings.blur = parseFloat(document.getElementById('blur-slider').value);
+        initialSettings.hueEnabled = document.getElementById('hue-toggle').checked;
+        initialSettings.rotationEnabled = document.getElementById('rotation-toggle').checked;
 
         document.getElementById('settings-view').style.display = 'none';
         document.getElementById('game-view').style.display = 'block';
@@ -336,6 +402,29 @@
         loadNextQuestion();
     }
 
+    function startTimer() {
+        questionStartTime = Date.now();
+        clearInterval(timerInterval);
+        
+        timerDisplay.innerText = `⏱ 0.0s`;
+        timerDisplay.className = ''; 
+
+        timerInterval = setInterval(() => {
+            let elapsed = (Date.now() - questionStartTime) / 1000;
+            timerDisplay.innerText = `⏱ ${elapsed.toFixed(1)}s`;
+            
+            // UPDATED: At 5 seconds, activate visual danger state
+            if (elapsed > 5.0 && !timerDisplay.classList.contains('timer-danger')) {
+                timerDisplay.className = 'timer-danger';
+            }
+        }, 100);
+    }
+
+    function stopTimer() {
+        clearInterval(timerInterval);
+        timerDisplay.className = ''; 
+    }
+
     function loadNextQuestion() {
         if (currentQuestionIndex >= MAX_QUESTIONS) {
             endGame();
@@ -347,6 +436,10 @@
         isTransitioning = false;
         currentSettings = { ...initialSettings };
         
+        // Generate random Hue and Rotation
+        currentHue = initialSettings.hueEnabled ? Math.floor(Math.random() * 360) : 0;
+        currentRotation = initialSettings.rotationEnabled ? Math.floor(Math.random() * 360) : 0;
+        
         updateUI();
         loadImageAndProcess();
     }
@@ -355,6 +448,11 @@
         document.getElementById('round-display').innerText = `${currentQuestionIndex + 1} / ${MAX_QUESTIONS}`;
         document.getElementById('score-display').innerText = totalScore;
         
+        if(triesLeft === 3) {
+            timerDisplay.innerText = `⏱ 0.0s`;
+            timerDisplay.className = '';
+        }
+
         const hearts = document.getElementById('hearts-display').children;
         for(let i=0; i<3; i++) {
             if(i < triesLeft) hearts[i].className = "heart";
@@ -371,21 +469,73 @@
     function loadImageAndProcess() {
         const imgName = `${currentCharacter.id}.webp`;
         const img = new Image();
+        img.crossOrigin = "Anonymous"; 
         
         charDiv.style.backgroundImage = 'none';
         loadingText.style.display = 'block';
 
         img.onload = () => {
-            loadingText.style.display = 'none';
-            cropPosX = 30 + (Math.random() * 40); 
-            cropPosY = 15 + (Math.random() * 40);
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
 
+            const zoomFactor = currentSettings.crop;
+            const cropW = Math.max(1, Math.floor(img.width / zoomFactor));
+            const cropH = Math.max(1, Math.floor(img.height / zoomFactor));
+
+            let bestX = 50, bestY = 50;
+            let highestSolidRatio = -1;
+            let attempts = 0;
+
+            while (attempts < 30) {
+                attempts++;
+                let testX = Math.random() * 100;
+                let testY = Math.random() * 100;
+
+                let startX = Math.floor((img.width - cropW) * (testX / 100));
+                let startY = Math.floor((img.height - cropH) * (testY / 100));
+
+                startX = Math.max(0, Math.min(startX, img.width - cropW));
+                startY = Math.max(0, Math.min(startY, img.height - cropH));
+
+                let imgData;
+                try {
+                    imgData = ctx.getImageData(startX, startY, cropW, cropH).data;
+                } catch (e) {
+                    bestX = 30 + (Math.random() * 40);
+                    bestY = 15 + (Math.random() * 40);
+                    break;
+                }
+
+                let solidPixels = 0;
+                for (let i = 3; i < imgData.length; i += 40) {
+                    if (imgData[i] > 20) solidPixels++; 
+                }
+
+                let ratio = solidPixels / Math.floor(imgData.length / 40);
+
+                if (ratio > highestSolidRatio) {
+                    highestSolidRatio = ratio;
+                    bestX = testX;
+                    bestY = testY;
+                }
+                if (ratio > 0.40) break; 
+            }
+
+            cropPosX = bestX;
+            cropPosY = bestY;
+
+            loadingText.style.display = 'none';
             applyFiltersAndDraw(false, false);
             charDiv.style.backgroundImage = `url('${img.src}')`;
 
             inputField.disabled = false;
             skipBtn.disabled = false;
             inputField.focus();
+            
+            startTimer(); // Start the timer right as the player gets control!
         };
         
         img.onerror = () => {
@@ -407,18 +557,29 @@
             charDiv.style.backgroundSize = 'contain';
             charDiv.style.backgroundPosition = 'center center';
             charDiv.style.filter = 'none';
+            charDiv.style.transform = 'none'; 
             return;
         }
 
-        const bgSize = currentSettings.crop * 100;
+        let scaleFactor = currentRotation !== 0 ? 1.45 : 1; 
+        const bgSize = (currentSettings.crop * 100) / scaleFactor; 
+        
         charDiv.style.backgroundSize = `${bgSize}%`;
         charDiv.style.backgroundPosition = `${cropPosX}% ${cropPosY}%`;
-        charDiv.style.filter = currentSettings.blur > 0 ? `blur(${currentSettings.blur}px)` : 'none';
+
+        let activeFilters = [];
+        if (currentSettings.blur > 0) activeFilters.push(`blur(${currentSettings.blur}px)`);
+        if (currentHue > 0) activeFilters.push(`hue-rotate(${currentHue}deg)`);
+        
+        charDiv.style.filter = activeFilters.length > 0 ? activeFilters.join(' ') : 'none';
+        charDiv.style.transform = `rotate(${currentRotation}deg) scale(${scaleFactor})`;
     }
 
     function makeEasier() {
         currentSettings.crop = Math.max(1, currentSettings.crop - (initialSettings.crop - 1) / 2);
         currentSettings.blur = Math.max(0, currentSettings.blur - (initialSettings.blur) / 2);
+        if (currentHue !== 0) currentHue = Math.floor(currentHue / 2);
+        if (currentRotation !== 0) currentRotation = Math.floor(currentRotation / 2);
         applyFiltersAndDraw(false, true);
     }
 
@@ -437,20 +598,31 @@
 
         if (guess.toLowerCase() === currentCharacter.name.toLowerCase()) {
             isTransitioning = true;
+            stopTimer(); // Lock in the time
             inputField.disabled = true;
             skipBtn.disabled = true;
             questionsCorrect++;
 
-            let pointsGained = 0;
-            if(triesLeft === 3) pointsGained = 100;
-            else if(triesLeft === 2) pointsGained = 60;
-            else if(triesLeft === 1) pointsGained = 30;
+            // Calculate Base points based on Tries Left
+            let basePoints = 0;
+            if(triesLeft === 3) basePoints = 100;
+            else if(triesLeft === 2) basePoints = 60;
+            else if(triesLeft === 1) basePoints = 30;
+            
+            // Calculate Time Penalty
+            let elapsedSecs = (Date.now() - questionStartTime) / 1000;
+            // UPDATED: Only punish after 5 full seconds
+            let penaltySeconds = Math.max(0, Math.floor(elapsedSecs) - 5); 
+            let timePenalty = penaltySeconds * TIME_PENALTY_RATE;
+
+            // Apply penalty, but never drop below 10 points for a correct guess
+            let pointsGained = Math.max(10, basePoints - timePenalty);
             
             totalScore += pointsGained;
             document.getElementById('score-display').innerText = totalScore;
             
             triggerWinConfetti();
-            feedbackText.innerText = `Correct! (+${pointsGained} pts)`;
+            feedbackText.innerHTML = `Correct! <strong>(+${pointsGained} pts</strong> in ${elapsedSecs.toFixed(1)}s)`;
             feedbackText.className = "correct";
             
             applyFiltersAndDraw(true, true); 
@@ -469,7 +641,8 @@
             skipBtn.disabled = false;
 
             if (triesLeft > 0) {
-                feedbackText.innerText = `Wrong! It's getting clearer...`;
+                // Timer KEEPS RUNNING if they guess wrong!
+                feedbackText.innerText = `Wrong! Time is still ticking...`;
                 feedbackText.className = "warning";
                 
                 feedbackText.style.animation = 'none';
@@ -478,9 +651,9 @@
 
                 makeEasier();
                 inputField.focus();
-
             } else {
                 isTransitioning = true;
+                stopTimer(); // Stop timer on game over
                 inputField.disabled = true;
                 skipBtn.disabled = true;
 
@@ -500,6 +673,7 @@
     function skipOrGiveUp() {
         if (isTransitioning) return;
         isTransitioning = true;
+        stopTimer();
         closeAutocomplete();
         inputField.disabled = true;
         skipBtn.disabled = true;
@@ -539,38 +713,42 @@
         rankEl.style.color = rankColor;
     }
 
-    // --- Autocomplete Logic (Updated to support searching by School) ---
+    // Helper to prevent Regex crashes if user types characters like '(' or '?'
+    function escapeRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); 
+    }
+
+    // --- Autocomplete Logic ---
     inputField.addEventListener('input', function() {
         const val = this.value.trim().toLowerCase();
         closeAutocomplete();
         if (!val) return false;
 
-        // Filter: match if the input is in the character's Name OR School
         const matches = uniqueCharacters.filter(c => {
             const matchName = c.name.toLowerCase().includes(val);
             const matchSchool = c.school.toLowerCase().includes(val);
             return matchName || matchSchool;
         });
 
-        // Alphabetize the results for easy reading
         matches.sort((a, b) => a.name.localeCompare(b.name));
 
         matches.forEach(match => {
             const item = document.createElement("div");
             
-            // Highlight the matched text in both name and school
-            const regex = new RegExp(`(${val})`, "gi");
+            // Use safely escaped Regex to prevent crashing on parentheses
+            const safeVal = escapeRegExp(val);
+            const regex = new RegExp(`(${safeVal})`, "gi");
+            
             const highlightedName = match.name.replace(regex, "<strong>$1</strong>");
             const highlightedSchool = match.school.replace(regex, "<strong>$1</strong>");
 
-            // Display "Name (School)" in the dropdown
             item.innerHTML = `
                 <span>${highlightedName}</span> 
                 <span class="autocomplete-school">(${highlightedSchool})</span>
             `;
             
             item.addEventListener('click', function() {
-                inputField.value = match.name; // Keep only the name for submission
+                inputField.value = match.name; 
                 submitGuess(match.name);
             });
             autocompleteList.appendChild(item);

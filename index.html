@@ -1,63 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>✨ My Cute Anime Game Hub ✨</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Comic Sans MS', 'Poppins', cursive;
-      background: linear-gradient(135deg, #ffd6ec, #c2f0ff);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ Anime Game Hub ✨</title>
+    <!-- Import the exact same font -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #1289F5;
+            --secondary: #FF6B9E;
+            --accent: #FFD166;
+            --dark: #2C3E50;
+            --bg-grad-1: #e0c3fc;
+            --bg-grad-2: #8ec5fc;
+        }
 
-    .container {
-      text-align: center;
-      background: rgba(255, 255, 255, 0.8);
-      padding: 40px;
-      border-radius: 25px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    }
+        body {
+            font-family: 'Nunito', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, var(--bg-grad-1) 0%, var(--bg-grad-2) 100%);
+            background-attachment: fixed;
+            color: var(--dark);
+        }
 
-    h1 {
-      color: #ff69b4;
-      margin-bottom: 20px;
-    }
+        /* Animated floating background circles (same as quiz) */
+        .bg-shapes {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            overflow: hidden; z-index: -1; pointer-events: none;
+        }
+        .shape {
+            position: absolute; border-radius: 50%; background: rgba(255,255,255,0.2);
+            animation: float 15s infinite ease-in-out;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-30px) scale(1.05); }
+        }
 
-    .btn {
-      display: block;
-      margin: 15px auto;
-      padding: 15px 25px;
-      font-size: 18px;
-      border: none;
-      border-radius: 50px;
-      background: linear-gradient(45deg, #ff9a9e, #fad0c4);
-      color: white;
-      cursor: pointer;
-      transition: 0.3s;
-      width: 200px;
-    }
+        /* Main Hub Title */
+        h1 {
+            color: white;
+            text-align: center;
+            font-size: 3rem;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            font-weight: 900;
+            letter-spacing: 1px;
+            -webkit-text-stroke: 1px rgba(255,255,255,0.5);
+            margin-bottom: 20px;
+            margin-top: 0;
+        }
 
-    .btn:hover {
-      transform: scale(1.1);
-      background: linear-gradient(45deg, #a18cd1, #fbc2eb);
-    }
+        /* Glassmorphism Container */
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15), inset 0 0 0 4px rgba(255,255,255,0.5);
+            width: 90%;
+            max-width: 450px;
+            box-sizing: border-box;
+            text-align: center;
+        }
 
-    .sparkle {
-      font-size: 24px;
-    }
-  </style>
+        .container h2 {
+            color: var(--primary);
+            margin-top: 0;
+            font-size: 1.8rem;
+            font-weight: 900;
+        }
+
+        .sparkle {
+            font-weight: 700;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        /* Anime Buttons */
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, var(--primary), #00d4ff);
+            color: white; border: none; padding: 16px 20px;
+            font-size: 1.3rem; font-weight: 900;
+            border-radius: 12px; cursor: pointer; width: 100%;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 5px 15px rgba(18, 137, 245, 0.4);
+            text-transform: uppercase;
+        }
+
+        /* Pink button variation for Game 2 */
+        .btn-pink {
+            background: linear-gradient(45deg, var(--secondary), #ff9ebf);
+            box-shadow: 0 5px 15px rgba(255, 107, 158, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 8px 25px rgba(18, 137, 245, 0.6);
+        }
+
+        .btn-pink:hover {
+            box-shadow: 0 8px 25px rgba(255, 107, 158, 0.6);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🌸 Anime Game Hub 🌸</h1>
-    <p class="sparkle">✨ Choose your adventure ✨</p>
 
-    <button class="btn" onclick="location.href='game01.html'">🎮 Game 1</button>
-    <button class="btn" onclick="location.href='game02.html'">🎮 Game 2</button>
-  </div>
+    <!-- Matching Animated Background -->
+    <div class="bg-shapes">
+        <div class="shape" style="width: 150px; height: 150px; top: 10%; left: 10%;"></div>
+        <div class="shape" style="width: 250px; height: 250px; top: 50%; left: 75%; animation-delay: -5s;"></div>
+        <div class="shape" style="width: 100px; height: 100px; top: 70%; left: 15%; animation-delay: -10s;"></div>
+    </div>
+
+    <h1>BA Quizes</h1>
+
+    <div class="container">
+        <h2>Select a Game</h2>
+        <p class="sparkle">✨ Choose your adventure! ✨</p>
+
+        <div class="btn-group">
+            <!-- Ensure 'game01.html' matches your actual quiz file name -->
+            <button class="btn" onclick="location.href='game01.html'">🎮 Blue Archive Quiz</button>
+            <button class="btn btn-pink" onclick="location.href='game02.html'">🎮 NOT DONE</button>
+        </div>
+    </div>
+
 </body>
 </html>
