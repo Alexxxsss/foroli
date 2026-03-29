@@ -48,10 +48,34 @@
             50% { transform: translateY(-30px) scale(1.05); }
         }
 
+        /* Top Left Highscore Button */
+        #hs-btn-top {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid var(--accent);
+            color: var(--warning);
+            padding: 10px 15px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: 0.3s;
+            z-index: 100;
+        }
+        #hs-btn-top:hover {
+            transform: scale(1.05) translateY(-2px);
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 8px 20px rgba(255, 209, 102, 0.5);
+        }
+
         h1 {
             color: white;
             text-align: center;
-            margin-top: 30px;
+            margin-top: 40px;
             font-size: 2.5rem;
             text-shadow: 0 4px 10px rgba(0,0,0,0.2);
             font-weight: 900;
@@ -74,7 +98,47 @@
         }
 
         /* Hidden by default */
-        #game-view, #end-view { display: none; text-align: center; }
+        #game-view, #end-view, #highscore-view { display: none; text-align: center; }
+
+        /* High Score Badge on Main Menu */
+        .pb-badge {
+            background: var(--bg-grad-1);
+            color: var(--dark);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 900;
+            font-size: 1.1rem;
+            margin-bottom: 25px;
+            display: inline-block;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+            border: 2px solid white;
+            transition: 0.3s;
+        }
+
+        /* High Score List Styles */
+        .hs-list {
+            max-height: 350px;
+            overflow-y: auto;
+            text-align: left;
+            margin-bottom: 20px;
+            padding-right: 5px;
+        }
+        .hs-item {
+            background: white;
+            border: 2px solid #eee;
+            padding: 12px 15px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: 0.2s;
+        }
+        .hs-item:hover { border-color: var(--accent); transform: scale(1.02); }
+        .hs-score-wrap { display: flex; flex-direction: column; }
+        .hs-score { font-size: 1.5rem; font-weight: 900; color: var(--primary); line-height: 1; }
+        .hs-date { font-size: 0.8rem; color: #95a5a6; margin-top: 4px; font-weight: bold; }
+        .hs-settings { font-size: 0.85rem; color: var(--dark); text-align: right; font-weight: 700; background: var(--bg-grad-1); padding: 5px 10px; border-radius: 8px;}
 
         /* Sliders & Toggles */
         .setting-group { margin-bottom: 25px; }
@@ -94,9 +158,7 @@
         }
 
         /* Custom Toggle Switch */
-        .switch {
-            position: relative; display: inline-block; width: 46px; height: 24px;
-        }
+        .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
             position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
@@ -226,10 +288,29 @@
         .score-circle span { font-size: 3rem; font-weight: 900; line-height: 1; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
         .score-circle small { font-size: 1.2rem; font-weight: bold; }
         .rank-text { font-size: 1.5rem; font-weight: 900; color: var(--secondary); margin-bottom: 20px; }
+        
+        .new-record {
+            color: var(--accent);
+            font-weight: 900;
+            font-size: 1.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            margin: -10px 0 15px 0;
+            display: none; 
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), pulseRed 0.8s infinite alternate;
+        }
+
+        /* Scrollbar styling for list */
+        .hs-list::-webkit-scrollbar { width: 8px; }
+        .hs-list::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .hs-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .hs-list::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
     </style>
 </head>
 <body>
+
+    <!-- Top Left Highscore Button -->
+    <button id="hs-btn-top" onclick="showHighScores()">🏆 High Scores</button>
 
     <div class="bg-shapes">
         <div class="shape" style="width: 150px; height: 150px; top: 10%; left: 10%;"></div>
@@ -240,24 +321,28 @@
     <h1>Blue Archive Quiz</h1>
 
     <!-- SETTINGS VIEW -->
-    <div class="container" id="settings-view">
+    <div class="container" id="settings-view" style="display: block;">
         <h2 style="text-align: center; color: var(--primary); margin-top:0;">Game Settings</h2>
         
+        <div style="text-align: center;">
+            <div class="pb-badge" id="menu-high-score">Personal Best: 0 pts</div>
+        </div>
+
         <div class="setting-group">
             <label><span>Crop Level (Zoom)</span> <span id="crop-val">8</span></label>
-            <input type="range" id="crop-slider" min="1" max="10" value="8" oninput="document.getElementById('crop-val').innerText = this.value">
+            <input type="range" id="crop-slider" min="1" max="10" value="8" oninput="document.getElementById('crop-val').innerText = this.value; updateMenuPB();">
         </div>
 
         <div class="setting-group">
             <label><span>Blur Level</span> <span id="blur-val">10px</span></label>
-            <input type="range" id="blur-slider" min="0" max="20" value="10" oninput="document.getElementById('blur-val').innerText = this.value + 'px'">
+            <input type="range" id="blur-slider" min="0" max="20" value="10" oninput="document.getElementById('blur-val').innerText = this.value + 'px'; updateMenuPB();">
         </div>
 
         <div class="setting-group">
             <label>
                 <span>Random Hue Shift</span>
                 <label class="switch">
-                    <input type="checkbox" id="hue-toggle">
+                    <input type="checkbox" id="hue-toggle" onchange="updateMenuPB();">
                     <span class="slider"></span>
                 </label>
             </label>
@@ -267,13 +352,25 @@
             <label>
                 <span>Random Rotation</span>
                 <label class="switch">
-                    <input type="checkbox" id="rotation-toggle">
+                    <input type="checkbox" id="rotation-toggle" onchange="updateMenuPB();">
                     <span class="slider"></span>
                 </label>
             </label>
         </div>
 
         <button class="btn" id="start-btn" onclick="startGame()" disabled>Loading Characters...</button>
+    </div>
+
+    <!-- HIGH SCORE VIEW -->
+    <div class="container" id="highscore-view">
+        <h2 style="text-align: center; color: var(--accent); margin-top:0; font-size: 2rem;">🏆 High Scores</h2>
+        <p style="color: #7f8c8d; font-weight: bold; margin-top:-10px; margin-bottom: 20px;">Ranked by your setting presets!</p>
+        
+        <div class="hs-list" id="hs-list-container">
+            <!-- High scores injected here by JS -->
+        </div>
+
+        <button class="btn" onclick="closeHighScores()" style="margin-top: 10px;">⬅ Back to Menu</button>
     </div>
 
     <!-- GAME VIEW -->
@@ -305,20 +402,43 @@
     <!-- END VIEW -->
     <div class="container" id="end-view">
         <h2 style="color: var(--primary); font-size: 2rem; margin-top:0;">Quiz Complete!</h2>
+        
         <div class="score-circle">
             <span id="final-score">0</span>
             <small>Points</small>
         </div>
+
+        <div class="new-record" id="new-record-badge">⭐ NEW RECORD! ⭐</div>
+        
         <div class="rank-text" id="rank-text">Sensei Rank: S</div>
-        <p>You guessed <span id="correct-count" style="color:var(--primary); font-weight:bold;">0</span> out of 10 students!</p>
+        
+        <p style="margin-bottom: 5px;">You guessed <span id="correct-count" style="color:var(--primary); font-weight:bold;">0</span> out of 10 students!</p>
+        <p style="margin-top: 0; color: #7f8c8d;">Preset High Score: <strong id="end-high-score">0</strong> pts</p>
+        
         <button class="btn" onclick="location.reload()" style="margin-top: 15px;">Play Again ↻</button>
     </div>
 
 <script>
     let uniqueCharacters = [];
+    
+    // --- High Score System Variables ---
+    let scoresDb = {}; 
+    let activePresetKey = ""; 
 
-    // Local Storage: Load Settings
+    // Get a unique string identifier based on the specific settings chosen
+    function getPresetKey(crop, blur, hue, rot) {
+        return `C${crop}_B${blur}_H${hue ? 'Y' : 'N'}_R${rot ? 'Y' : 'N'}`;
+    }
+
+    // Load ALL settings and scores from storage
     function loadSavedSettings() {
+        // Load the scores dictionary
+        let savedScores = localStorage.getItem('baQuiz_scoresDb');
+        if (savedScores) {
+            scoresDb = JSON.parse(savedScores);
+        }
+
+        // Restore last used settings to the sliders
         if (localStorage.getItem('baQuiz_crop') !== null) {
             let crop = localStorage.getItem('baQuiz_crop');
             document.getElementById('crop-slider').value = crop;
@@ -335,26 +455,32 @@
         if (localStorage.getItem('baQuiz_rotation') !== null) {
             document.getElementById('rotation-toggle').checked = localStorage.getItem('baQuiz_rotation') === 'true';
         }
+
+        updateMenuPB(); // Update the PB badge text on load
     }
 
-    // Local Storage: Save Settings
-    function saveCurrentSettings() {
-        localStorage.setItem('baQuiz_crop', document.getElementById('crop-slider').value);
-        localStorage.setItem('baQuiz_blur', document.getElementById('blur-slider').value);
-        localStorage.setItem('baQuiz_hue', document.getElementById('hue-toggle').checked);
-        localStorage.setItem('baQuiz_rotation', document.getElementById('rotation-toggle').checked);
+    // Read current sliders and show the PB for *those specific settings*
+    function updateMenuPB() {
+        let c = document.getElementById('crop-slider').value;
+        let b = document.getElementById('blur-slider').value;
+        let h = document.getElementById('hue-toggle').checked;
+        let r = document.getElementById('rotation-toggle').checked;
+
+        let key = getPresetKey(c, b, h, r);
+        let pb = scoresDb[key] ? scoresDb[key].score : 0;
+        
+        document.getElementById('menu-high-score').innerText = `Personal Best: ${pb} pts`;
     }
 
     // Fetch the LIVE official database from SchaleDB
     window.onload = async () => {
-        loadSavedSettings(); // Instantly apply saved user settings
+        loadSavedSettings(); 
 
         const startBtn = document.getElementById('start-btn');
         try {
             const res = await fetch('https://raw.githubusercontent.com/SchaleDB/SchaleDB/main/data/en/students.json');
             const data = await res.json();
             
-            // MAP ALL CHARACTERS
             uniqueCharacters = data.map(student => ({ 
                 name: student.Name, 
                 id: student.Id, 
@@ -399,10 +525,9 @@
     let cropPosX = 50, cropPosY = 50;
     let isTransitioning = false; 
 
-    // Timer Variables
     let questionStartTime = 0;
     let timerInterval = null;
-    const TIME_PENALTY_RATE = 2; // Drops 2 pts per second after 5s
+    const TIME_PENALTY_RATE = 2; 
 
     // DOM Elements
     const inputField = document.getElementById('guess-input');
@@ -413,15 +538,74 @@
     const skipBtn = document.getElementById('skip-btn');
     const timerDisplay = document.getElementById('timer-display');
 
-    function startGame() {
-        saveCurrentSettings(); // Save settings immediately on start
+    // --- High Score View Logic ---
+    function showHighScores() {
+        document.getElementById('settings-view').style.display = 'none';
+        document.getElementById('hs-btn-top').style.display = 'none';
+        document.getElementById('highscore-view').style.display = 'block';
 
+        const listContainer = document.getElementById('hs-list-container');
+        listContainer.innerHTML = '';
+
+        // Convert the database dictionary into an array and sort by highest score
+        let scoresArray = Object.values(scoresDb).sort((a, b) => b.score - a.score);
+
+        if (scoresArray.length === 0) {
+            listContainer.innerHTML = '<p style="text-align:center; color:#7f8c8d;">No records yet! Play a game to set a score.</p>';
+            return;
+        }
+
+        scoresArray.forEach((record, index) => {
+            let hueText = record.hue ? 'Yes' : 'No';
+            let rotText = record.rot ? 'Yes' : 'No';
+
+            // Add medal emojis for top 3
+            let rankEmoji = '';
+            if (index === 0) rankEmoji = '🥇 ';
+            else if (index === 1) rankEmoji = '🥈 ';
+            else if (index === 2) rankEmoji = '🥉 ';
+
+            let item = document.createElement('div');
+            item.className = 'hs-item';
+            item.innerHTML = `
+                <div class="hs-score-wrap">
+                    <div class="hs-score">${rankEmoji}${record.score}</div>
+                    <div class="hs-date">${record.date}</div>
+                </div>
+                <div class="hs-settings">
+                    Crop: ${record.crop} | Blur: ${record.blur}px<br>
+                    Hue: ${hueText} | Rot: ${rotText}
+                </div>
+            `;
+            listContainer.appendChild(item);
+        });
+    }
+
+    function closeHighScores() {
+        document.getElementById('highscore-view').style.display = 'none';
+        document.getElementById('settings-view').style.display = 'block';
+        document.getElementById('hs-btn-top').style.display = 'block';
+    }
+
+
+    function startGame() {
+        // Save current sliders to local storage memory
+        localStorage.setItem('baQuiz_crop', document.getElementById('crop-slider').value);
+        localStorage.setItem('baQuiz_blur', document.getElementById('blur-slider').value);
+        localStorage.setItem('baQuiz_hue', document.getElementById('hue-toggle').checked);
+        localStorage.setItem('baQuiz_rotation', document.getElementById('rotation-toggle').checked);
+
+        // Lock in initial settings for the game
         initialSettings.crop = parseFloat(document.getElementById('crop-slider').value);
         initialSettings.blur = parseFloat(document.getElementById('blur-slider').value);
         initialSettings.hueEnabled = document.getElementById('hue-toggle').checked;
         initialSettings.rotationEnabled = document.getElementById('rotation-toggle').checked;
 
+        // Create the active key for saving at the end of the run
+        activePresetKey = getPresetKey(initialSettings.crop, initialSettings.blur, initialSettings.hueEnabled, initialSettings.rotationEnabled);
+
         document.getElementById('settings-view').style.display = 'none';
+        document.getElementById('hs-btn-top').style.display = 'none'; // Hide trophy button
         document.getElementById('game-view').style.display = 'block';
 
         let shuffled = [...uniqueCharacters].sort(() => 0.5 - Math.random());
@@ -445,7 +629,6 @@
             let elapsed = (Date.now() - questionStartTime) / 1000;
             timerDisplay.innerText = `⏱ ${elapsed.toFixed(1)}s`;
             
-            // At 5 seconds, activate visual danger state
             if (elapsed > 5.0 && !timerDisplay.classList.contains('timer-danger')) {
                 timerDisplay.className = 'timer-danger';
             }
@@ -468,7 +651,6 @@
         isTransitioning = false;
         currentSettings = { ...initialSettings };
         
-        // Generate random Hue and Rotation
         currentHue = initialSettings.hueEnabled ? Math.floor(Math.random() * 360) : 0;
         currentRotation = initialSettings.rotationEnabled ? Math.floor(Math.random() * 360) : 0;
         
@@ -637,23 +819,20 @@
 
         if (guess.toLowerCase() === currentCharacter.name.toLowerCase()) {
             isTransitioning = true;
-            stopTimer(); // Lock in the time
+            stopTimer(); 
             inputField.disabled = true;
             skipBtn.disabled = true;
             questionsCorrect++;
 
-            // Calculate Base points based on Tries Left
             let basePoints = 0;
             if(triesLeft === 3) basePoints = 100;
             else if(triesLeft === 2) basePoints = 60;
             else if(triesLeft === 1) basePoints = 30;
             
-            // Calculate Time Penalty
             let elapsedSecs = (Date.now() - questionStartTime) / 1000;
             let penaltySeconds = Math.max(0, Math.floor(elapsedSecs) - 5); 
             let timePenalty = penaltySeconds * TIME_PENALTY_RATE;
 
-            // Apply penalty, but never drop below 10 points for a correct guess
             let pointsGained = Math.max(10, basePoints - timePenalty);
             
             totalScore += pointsGained;
@@ -679,7 +858,6 @@
             skipBtn.disabled = false;
 
             if (triesLeft > 0) {
-                // Timer KEEPS RUNNING if they guess wrong!
                 feedbackText.innerText = `Wrong! Time is still ticking...`;
                 feedbackText.className = "warning";
                 
@@ -691,7 +869,7 @@
                 inputField.focus();
             } else {
                 isTransitioning = true;
-                stopTimer(); // Stop timer on game over
+                stopTimer(); 
                 inputField.disabled = true;
                 skipBtn.disabled = true;
 
@@ -735,9 +913,36 @@
     function endGame() {
         document.getElementById('game-view').style.display = 'none';
         document.getElementById('end-view').style.display = 'block';
+        document.getElementById('hs-btn-top').style.display = 'block'; // Bring back trophy button
         
         document.getElementById('final-score').innerText = totalScore;
         document.getElementById('correct-count').innerText = questionsCorrect;
+
+        // --- PRESET HIGH SCORE LOGIC ---
+        let currentPresetRecord = scoresDb[activePresetKey] ? scoresDb[activePresetKey].score : 0;
+
+        if (totalScore > currentPresetRecord) {
+            // Write new high score for these exact settings
+            scoresDb[activePresetKey] = {
+                score: totalScore,
+                date: new Date().toLocaleDateString(),
+                crop: initialSettings.crop,
+                blur: initialSettings.blur,
+                hue: initialSettings.hueEnabled,
+                rot: initialSettings.rotationEnabled
+            };
+            
+            // Save full DB string to storage
+            localStorage.setItem('baQuiz_scoresDb', JSON.stringify(scoresDb));
+            
+            document.getElementById('new-record-badge').style.display = 'block'; 
+            triggerWinConfetti(); 
+            currentPresetRecord = totalScore; // Update display to show new best
+        } else {
+            document.getElementById('new-record-badge').style.display = 'none';
+        }
+
+        document.getElementById('end-high-score').innerText = currentPresetRecord;
 
         let rank = "C";
         let rankColor = "#7f8c8d";
