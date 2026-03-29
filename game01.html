@@ -317,8 +317,38 @@
 <script>
     let uniqueCharacters = [];
 
+    // Local Storage: Load Settings
+    function loadSavedSettings() {
+        if (localStorage.getItem('baQuiz_crop') !== null) {
+            let crop = localStorage.getItem('baQuiz_crop');
+            document.getElementById('crop-slider').value = crop;
+            document.getElementById('crop-val').innerText = crop;
+        }
+        if (localStorage.getItem('baQuiz_blur') !== null) {
+            let blur = localStorage.getItem('baQuiz_blur');
+            document.getElementById('blur-slider').value = blur;
+            document.getElementById('blur-val').innerText = blur + 'px';
+        }
+        if (localStorage.getItem('baQuiz_hue') !== null) {
+            document.getElementById('hue-toggle').checked = localStorage.getItem('baQuiz_hue') === 'true';
+        }
+        if (localStorage.getItem('baQuiz_rotation') !== null) {
+            document.getElementById('rotation-toggle').checked = localStorage.getItem('baQuiz_rotation') === 'true';
+        }
+    }
+
+    // Local Storage: Save Settings
+    function saveCurrentSettings() {
+        localStorage.setItem('baQuiz_crop', document.getElementById('crop-slider').value);
+        localStorage.setItem('baQuiz_blur', document.getElementById('blur-slider').value);
+        localStorage.setItem('baQuiz_hue', document.getElementById('hue-toggle').checked);
+        localStorage.setItem('baQuiz_rotation', document.getElementById('rotation-toggle').checked);
+    }
+
     // Fetch the LIVE official database from SchaleDB
     window.onload = async () => {
+        loadSavedSettings(); // Instantly apply saved user settings
+
         const startBtn = document.getElementById('start-btn');
         try {
             const res = await fetch('https://raw.githubusercontent.com/SchaleDB/SchaleDB/main/data/en/students.json');
@@ -384,6 +414,8 @@
     const timerDisplay = document.getElementById('timer-display');
 
     function startGame() {
+        saveCurrentSettings(); // Save settings immediately on start
+
         initialSettings.crop = parseFloat(document.getElementById('crop-slider').value);
         initialSettings.blur = parseFloat(document.getElementById('blur-slider').value);
         initialSettings.hueEnabled = document.getElementById('hue-toggle').checked;
@@ -484,14 +516,13 @@
             let scaleFactor = currentRotation !== 0 ? 1.45 : 1; 
             let activeZoom = currentSettings.crop / scaleFactor;
 
-            // FIX: Since the display viewport is a square (300x300), the actual crop area on the source image is ALSO a square based on width.
             const cropW = Math.max(1, Math.floor(img.width / activeZoom));
             const cropH = cropW;
 
             let bestX = 50, bestY = 50;
             let highestSolidRatio = -1;
             let attempts = 0;
-            const maxAttempts = 80; // Up from 30 to guarantee finding a meaty spot
+            const maxAttempts = 80;
 
             while (attempts < maxAttempts) {
                 attempts++;
@@ -516,23 +547,19 @@
                 let solidPixels = 0;
                 let totalSampled = 0;
                 
-                // Jump 16 indexes at a time to check every 4th pixel (RGBA structure)
                 for (let i = 3; i < imgData.length; i += 16) {
-                    // Only count fully opaque or mostly opaque pixels (ignores blurry translucent edges)
                     if (imgData[i] > 150) solidPixels++; 
                     totalSampled++;
                 }
 
                 let ratio = solidPixels / totalSampled;
 
-                // Keep track of the absolute thickest/meatiest spot we find
                 if (ratio > highestSolidRatio) {
                     highestSolidRatio = ratio;
                     bestX = testX;
                     bestY = testY;
                 }
                 
-                // If it's over 85% solid clothing/hair/face, instantly accept it!
                 if (ratio >= 0.85) break; 
             }
 
@@ -623,7 +650,6 @@
             
             // Calculate Time Penalty
             let elapsedSecs = (Date.now() - questionStartTime) / 1000;
-            // Only punish after 5 full seconds
             let penaltySeconds = Math.max(0, Math.floor(elapsedSecs) - 5); 
             let timePenalty = penaltySeconds * TIME_PENALTY_RATE;
 
@@ -747,7 +773,6 @@
         matches.forEach(match => {
             const item = document.createElement("div");
             
-            // Use safely escaped Regex to prevent crashing on parentheses
             const safeVal = escapeRegExp(val);
             const regex = new RegExp(`(${safeVal})`, "gi");
             
